@@ -1,5 +1,5 @@
 use std::io;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{Command as StdCommand, Stdio};
 
 use clap::{CommandFactory, Parser, Subcommand};
@@ -227,7 +227,7 @@ fn run_host_server(mode: &str, port: u16) {
 
 /// Find the host script relative to the binary.
 /// Tries multiple locations for dev vs production installs.
-fn find_host_script(exe_path: &PathBuf) -> Option<String> {
+fn find_host_script(exe_path: &Path) -> Option<String> {
     let exe_dir = exe_path.parent()?;
 
     // Candidate paths (relative to binary location)
@@ -256,7 +256,7 @@ fn find_host_script(exe_path: &PathBuf) -> Option<String> {
 }
 
 /// Find the static root for UI files.
-fn find_static_root(exe_path: &PathBuf) -> Option<String> {
+fn find_static_root(exe_path: &Path) -> Option<String> {
     let exe_dir = exe_path.parent()?;
 
     // Candidate paths (relative to binary location)

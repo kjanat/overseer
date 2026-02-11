@@ -113,6 +113,8 @@ impl Task {
 
     /// Task satisfies blocker (completed only, not cancelled)
     /// Note: archived is a visibility filter, doesn't affect blocker semantics
+    /// Prod code uses `task_repo::is_task_satisfies_blocker` (DB query) instead.
+    #[cfg(test)]
     pub fn satisfies_blocker(&self) -> bool {
         self.completed && !self.cancelled
     }

@@ -3,5 +3,6 @@
 	"default": true,
 	"no-hard-tabs": { "code_blocks": false },
 	"no-bare-urls": false,
-	"fenced-code-language": false
+	"fenced-code-language": false,
+	"blanks-around-fences": false
 }

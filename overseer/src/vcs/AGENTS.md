@@ -35,13 +35,22 @@ for read ops.
 - `status()`: gix status API with staged/worktree change detection
 - Uses git CLI for `commit()` - gix staging API unstable
 
-## UNIFIED STACKING SEMANTICS
+## VCS-AWARE WORKFLOW SEMANTICS
 
-Both jj and git backends implement identical workflow behavior:
+Workflow ops are VCS-type-aware via `manages_branches()` on VcsBackend trait.
 
-- **start**: Create bookmark/branch at HEAD, checkout
-- **complete**: Commit → checkout start_commit → delete bookmark/branch
-- This solves git's "cannot delete checked-out branch" error
+### jj (`manages_branches() = true`)
+
+- **start**: Create bookmark at HEAD, checkout
+- **complete**: Commit → checkout start_commit → delete bookmark
+
+### git (`manages_branches() = false`)
+
+- **start**: Record current_commit_id + current_branch_name (informational).
+  Do NOT create branches or switch HEAD.
+- **complete**: Update DB only. Do NOT commit, checkout, or delete branches.
+- Overseer is a **pure task tracker** in git repos — observes state, never
+  mutates it. User manages branches and commits.
 
 ## CONVENTIONS
 

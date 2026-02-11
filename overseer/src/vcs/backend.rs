@@ -135,6 +135,24 @@ pub trait VcsBackend: Send + Sync {
     // Navigation
     fn checkout(&self, target: &str) -> VcsResult<()>;
 
+    /// Returns the current branch/bookmark name, if on one.
+    /// For git: current branch name (None if HEAD detached).
+    /// For jj: None (jj doesn't have a "current branch" concept).
+    fn current_branch_name(&self) -> VcsResult<Option<String>> {
+        Ok(None)
+    }
+
+    /// Whether this backend manages branches/bookmarks as part of workflow ops.
+    ///
+    /// - **jj** (`true`): Bookmarks are cheap labels. `start()` creates bookmark + checkout,
+    ///   `complete()` commits + checkout start_commit + deletes bookmark. Safe and expected.
+    /// - **git** (`false`): Branches are heavyweight. Creating/switching/deleting branches
+    ///   has real side effects (detached HEAD, lost work). Workflow ops should only
+    ///   *observe* VCS state, never mutate it.
+    fn manages_branches(&self) -> bool {
+        matches!(self.vcs_type(), VcsType::Jj)
+    }
+
     // Working copy safety
     fn is_clean(&self) -> VcsResult<bool> {
         self.status().map(|s| s.files.is_empty())

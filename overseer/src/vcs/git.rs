@@ -429,6 +429,26 @@ impl VcsBackend for GixBackend {
         Ok(branches)
     }
 
+    fn current_branch_name(&self) -> VcsResult<Option<String>> {
+        let repo = self.open_repo()?;
+        let head_ref = repo
+            .head_ref()
+            .map_err(|e| VcsError::OperationFailed(format!("get head ref: {e}")))?;
+
+        match head_ref {
+            Some(reference) => {
+                let name = reference.name().as_bstr().to_str_lossy();
+                // Strip refs/heads/ prefix to get branch name
+                let branch_name = name
+                    .strip_prefix("refs/heads/")
+                    .unwrap_or(&name)
+                    .to_string();
+                Ok(Some(branch_name))
+            }
+            None => Ok(None), // Detached HEAD
+        }
+    }
+
     fn checkout(&self, target: &str) -> VcsResult<()> {
         // Check for dirty working copy
         if !self.is_clean()? {

@@ -58,9 +58,11 @@ impl<'a> TaskWorkflowService<'a> {
 
         // Idempotent: already started with VCS state
         if task.started_at.is_some() && task.bookmark.is_some() {
-            // Just checkout the existing bookmark
-            if let Some(ref bookmark) = task.bookmark {
-                self.vcs.checkout(bookmark)?;
+            // Just checkout the existing bookmark (only if backend manages branches)
+            if self.vcs.manages_branches() {
+                if let Some(ref bookmark) = task.bookmark {
+                    self.vcs.checkout(bookmark)?;
+                }
             }
             return self.task_service.get(id);
         }
@@ -68,32 +70,44 @@ impl<'a> TaskWorkflowService<'a> {
         // Validate: must be the next ready task in its subtree
         self.validate_start_target(id, &task)?;
 
-        let bookmark = task
-            .bookmark
-            .clone()
-            .unwrap_or_else(|| format!("task/{}", id));
+        if self.vcs.manages_branches() {
+            // jj: create bookmark + checkout (cheap, non-destructive)
+            let bookmark = task
+                .bookmark
+                .clone()
+                .unwrap_or_else(|| format!("task/{}", id));
 
-        // 1. Ensure bookmark exists (idempotent)
-        match self.vcs.create_bookmark(&bookmark, None) {
-            Ok(()) | Err(VcsError::BookmarkExists(_)) => {}
-            Err(e) => return Err(e.into()),
+            // 1. Ensure bookmark exists (idempotent)
+            match self.vcs.create_bookmark(&bookmark, None) {
+                Ok(()) | Err(VcsError::BookmarkExists(_)) => {}
+                Err(e) => return Err(e.into()),
+            }
+
+            // 2. Checkout (can fail on DirtyWorkingCopy)
+            self.vcs.checkout(&bookmark)?;
+
+            // 3. Record start commit
+            let sha = self.vcs.current_commit_id()?;
+
+            // 4. DB updates (after VCS succeeds)
+            task_repo::set_bookmark(self.conn, id, &bookmark)?;
+            task_repo::set_start_commit(self.conn, id, &sha)?;
+        } else {
+            // git: observe only — never create branches or switch HEAD
+            let sha = self.vcs.current_commit_id()?;
+            let branch_name = self.vcs.current_branch_name()?;
+
+            task_repo::set_start_commit(self.conn, id, &sha)?;
+            if let Some(ref branch) = branch_name {
+                task_repo::set_bookmark(self.conn, id, branch)?;
+            }
         }
-
-        // 2. Checkout (can fail on DirtyWorkingCopy)
-        self.vcs.checkout(&bookmark)?;
-
-        // 3. Record start commit
-        let sha = self.vcs.current_commit_id()?;
-
-        // 4. DB updates (after VCS succeeds)
-        task_repo::set_bookmark(self.conn, id, &bookmark)?;
-        task_repo::set_start_commit(self.conn, id, &sha)?;
 
         if task.started_at.is_none() {
             self.task_service.start(id)?;
         }
 
-        // 5. Bubble started_at to ancestors (but not VCS state)
+        // Bubble started_at to ancestors (but not VCS state)
         self.bubble_start_to_ancestors(id)?;
 
         self.task_service.get(id)
@@ -240,47 +254,49 @@ impl<'a> TaskWorkflowService<'a> {
             return self.complete_milestone_with_learnings(id, result, learnings);
         }
 
-        // 1. VCS first - commit (NothingToCommit is OK)
-        let msg = format!("Complete: {}\n\n{}", task.description, result.unwrap_or(""));
-        match self.vcs.commit(&msg) {
-            Ok(_) | Err(VcsError::NothingToCommit) => {}
-            Err(e) => return Err(e.into()),
+        if self.vcs.manages_branches() {
+            // jj: commit changes (NothingToCommit is OK)
+            let msg = format!("Complete: {}\n\n{}", task.description, result.unwrap_or(""));
+            match self.vcs.commit(&msg) {
+                Ok(_) | Err(VcsError::NothingToCommit) => {}
+                Err(e) => return Err(e.into()),
+            }
         }
+        // git: skip commit — user manages their own commits
 
-        // 2. DB updates (after VCS succeeds)
+        // DB updates (after VCS succeeds for jj, immediately for git)
         let completed_task = self
             .task_service
             .complete_with_learnings(id, result, learnings)?;
 
-        // 3. Best-effort cleanup: checkout safe target then delete bookmark/branch
-        // Unified stacking semantics: both jj and git get same behavior
-        // Checkout first solves git's "cannot delete checked-out branch" error
-        if let Some(ref bookmark) = task.bookmark {
-            // Find checkout target: prefer start_commit, fallback to current HEAD
-            let checkout_target = task
-                .start_commit
-                .clone()
-                .or_else(|| self.vcs.current_commit_id().ok());
+        if self.vcs.manages_branches() {
+            // jj: best-effort cleanup — checkout safe target then delete bookmark
+            if let Some(ref bookmark) = task.bookmark {
+                let checkout_target = task
+                    .start_commit
+                    .clone()
+                    .or_else(|| self.vcs.current_commit_id().ok());
 
-            if let Some(ref target) = checkout_target {
-                if let Err(e) = self.vcs.checkout(target) {
-                    eprintln!(
-                        "warn: failed to checkout {}: {} - skipping branch cleanup",
-                        target, e
-                    );
-                } else if let Err(e) = self.vcs.delete_bookmark(bookmark) {
-                    eprintln!("warn: failed to delete bookmark {}: {}", bookmark, e);
+                if let Some(ref target) = checkout_target {
+                    if let Err(e) = self.vcs.checkout(target) {
+                        eprintln!(
+                            "warn: failed to checkout {}: {} - skipping branch cleanup",
+                            target, e
+                        );
+                    } else if let Err(e) = self.vcs.delete_bookmark(bookmark) {
+                        eprintln!("warn: failed to delete bookmark {}: {}", bookmark, e);
+                    } else {
+                        let _ = task_repo::clear_bookmark(self.conn, id);
+                    }
                 } else {
-                    // Clear bookmark field in DB after successful VCS deletion
-                    let _ = task_repo::clear_bookmark(self.conn, id);
+                    eprintln!(
+                        "warn: no checkout target available - skipping branch cleanup for {}",
+                        bookmark
+                    );
                 }
-            } else {
-                eprintln!(
-                    "warn: no checkout target available - skipping branch cleanup for {}",
-                    bookmark
-                );
             }
         }
+        // git: skip checkout + branch deletion — leave HEAD and branches untouched
 
         // Bubble up: auto-complete parents if all children done and unblocked
         self.bubble_up_completion(id)?;
@@ -355,14 +371,14 @@ impl<'a> TaskWorkflowService<'a> {
 
         // Not a milestone - delegate to regular complete (avoid infinite recursion)
         if task.depth != Some(0) {
-            // 1. VCS first - commit (NothingToCommit is OK)
-            let msg = format!("Complete: {}\n\n{}", task.description, result.unwrap_or(""));
-            match self.vcs.commit(&msg) {
-                Ok(_) | Err(VcsError::NothingToCommit) => {}
-                Err(e) => return Err(e.into()),
+            if self.vcs.manages_branches() {
+                let msg = format!("Complete: {}\n\n{}", task.description, result.unwrap_or(""));
+                match self.vcs.commit(&msg) {
+                    Ok(_) | Err(VcsError::NothingToCommit) => {}
+                    Err(e) => return Err(e.into()),
+                }
             }
 
-            // 2. DB updates (after VCS succeeds)
             let completed_task = self
                 .task_service
                 .complete_with_learnings(id, result, learnings)?;
@@ -370,71 +386,71 @@ impl<'a> TaskWorkflowService<'a> {
             return Ok(completed_task);
         }
 
-        // Milestone: VCS first - commit (NothingToCommit is OK)
-        let msg = format!(
-            "Milestone: {}\n\n{}",
-            task.description,
-            result.unwrap_or("")
-        );
-        match self.vcs.commit(&msg) {
-            Ok(_) | Err(VcsError::NothingToCommit) => {}
-            Err(e) => return Err(e.into()),
+        // Milestone path
+        if self.vcs.manages_branches() {
+            // jj: commit changes (NothingToCommit is OK)
+            let msg = format!(
+                "Milestone: {}\n\n{}",
+                task.description,
+                result.unwrap_or("")
+            );
+            match self.vcs.commit(&msg) {
+                Ok(_) | Err(VcsError::NothingToCommit) => {}
+                Err(e) => return Err(e.into()),
+            }
         }
 
-        // DB updates (after VCS succeeds)
+        // DB updates
         let completed_task = self
             .task_service
             .complete_with_learnings(id, result, learnings)?;
 
-        // Best-effort cleanup: delete ALL descendant bookmarks
-        // Unified stacking semantics: both jj and git get same behavior
-        // For milestone, we need to checkout a safe commit first, then clean all descendants
-        let descendants = task_repo::get_all_descendants(self.conn, id)?;
+        if self.vcs.manages_branches() {
+            // jj: best-effort cleanup — delete ALL descendant bookmarks
+            let descendants = task_repo::get_all_descendants(self.conn, id)?;
 
-        // Find checkout target: prefer milestone's start_commit, then descendant's, then HEAD
-        let checkout_target = task
-            .start_commit
-            .clone()
-            .or_else(|| descendants.iter().find_map(|d| d.start_commit.clone()))
-            .or_else(|| self.vcs.current_commit_id().ok());
+            let checkout_target = task
+                .start_commit
+                .clone()
+                .or_else(|| descendants.iter().find_map(|d| d.start_commit.clone()))
+                .or_else(|| self.vcs.current_commit_id().ok());
 
-        if let Some(ref target) = checkout_target {
-            if let Err(e) = self.vcs.checkout(target) {
-                eprintln!(
-                    "warn: failed to checkout {}: {} - skipping branch cleanup",
-                    target, e
-                );
+            if let Some(ref target) = checkout_target {
+                if let Err(e) = self.vcs.checkout(target) {
+                    eprintln!(
+                        "warn: failed to checkout {}: {} - skipping branch cleanup",
+                        target, e
+                    );
+                    return Ok(completed_task);
+                }
+            } else {
+                eprintln!("warn: no checkout target available - skipping milestone branch cleanup");
                 return Ok(completed_task);
             }
-        } else {
-            // No checkout target available - skip branch cleanup entirely
-            // This matches single-task behavior for consistency
-            eprintln!("warn: no checkout target available - skipping milestone branch cleanup");
-            return Ok(completed_task);
-        }
 
-        for descendant in descendants.iter() {
-            if let Some(ref bookmark) = descendant.bookmark {
+            for descendant in descendants.iter() {
+                if let Some(ref bookmark) = descendant.bookmark {
+                    if let Err(e) = self.vcs.delete_bookmark(bookmark) {
+                        eprintln!("warn: failed to delete bookmark {}: {}", bookmark, e);
+                    } else {
+                        let _ = task_repo::clear_bookmark(self.conn, &descendant.id);
+                    }
+                }
+            }
+
+            // Also clean up milestone's own bookmark
+            if let Some(ref bookmark) = task.bookmark {
                 if let Err(e) = self.vcs.delete_bookmark(bookmark) {
-                    eprintln!("warn: failed to delete bookmark {}: {}", bookmark, e);
+                    eprintln!(
+                        "warn: failed to delete milestone bookmark {}: {}",
+                        bookmark, e
+                    );
                 } else {
-                    // Clear bookmark field in DB after successful VCS deletion
-                    let _ = task_repo::clear_bookmark(self.conn, &descendant.id);
+                    let _ = task_repo::clear_bookmark(self.conn, id);
                 }
             }
         }
-
-        // Also clean up milestone's own bookmark (if started as leaf before children added)
-        if let Some(ref bookmark) = task.bookmark {
-            if let Err(e) = self.vcs.delete_bookmark(bookmark) {
-                eprintln!(
-                    "warn: failed to delete milestone bookmark {}: {}",
-                    bookmark, e
-                );
-            } else {
-                let _ = task_repo::clear_bookmark(self.conn, id);
-            }
-        }
+        // git: skip all VCS cleanup — branches untouched
 
         Ok(completed_task)
     }
@@ -455,11 +471,13 @@ mod tests {
     }
 
     /// Mock VCS backend for tests - all operations succeed with minimal side effects.
+    /// Reports as jj so manages_branches() returns true, matching tests that expect
+    /// full VCS workflow (bookmark creation, checkout, commit, cleanup).
     struct MockVcsBackend;
 
     impl VcsBackend for MockVcsBackend {
         fn vcs_type(&self) -> VcsType {
-            VcsType::Git
+            VcsType::Jj
         }
         fn root(&self) -> &str {
             "/mock"
@@ -1314,6 +1332,332 @@ mod tests {
             "Expected CannotCompleteCancelled error, got {:?}",
             result
         );
+    }
+
+    // === Passive git backend tests ===
+    // These verify that when manages_branches() returns false (git backend),
+    // workflow operations only observe VCS state, never mutate it.
+
+    /// Simple git mock (no call tracking). manages_branches() returns false.
+    struct SimpleGitBackend {
+        branch_name: Option<String>,
+    }
+
+    impl SimpleGitBackend {
+        fn on_branch(name: &str) -> Self {
+            Self {
+                branch_name: Some(name.to_string()),
+            }
+        }
+        fn detached() -> Self {
+            Self { branch_name: None }
+        }
+    }
+
+    impl VcsBackend for SimpleGitBackend {
+        fn vcs_type(&self) -> VcsType {
+            VcsType::Git
+        }
+        fn root(&self) -> &str {
+            "/mock-git"
+        }
+        fn status(&self) -> VcsResult<VcsStatus> {
+            Ok(VcsStatus {
+                files: vec![],
+                working_copy_id: Some("abc123def456".to_string()),
+            })
+        }
+        fn log(&self, _: usize) -> VcsResult<Vec<LogEntry>> {
+            Ok(vec![])
+        }
+        fn diff(&self, _: Option<&str>) -> VcsResult<Vec<DiffEntry>> {
+            Ok(vec![])
+        }
+        fn commit(&self, msg: &str) -> VcsResult<CommitResult> {
+            Ok(CommitResult {
+                id: "mock".to_string(),
+                message: msg.to_string(),
+            })
+        }
+        fn current_commit_id(&self) -> VcsResult<String> {
+            Ok("abc123def456".to_string())
+        }
+        fn current_branch_name(&self) -> VcsResult<Option<String>> {
+            Ok(self.branch_name.clone())
+        }
+        fn create_bookmark(&self, _: &str, _: Option<&str>) -> VcsResult<()> {
+            Ok(())
+        }
+        fn delete_bookmark(&self, _: &str) -> VcsResult<()> {
+            Ok(())
+        }
+        fn list_bookmarks(&self, _: Option<&str>) -> VcsResult<Vec<String>> {
+            Ok(vec![])
+        }
+        fn checkout(&self, _: &str) -> VcsResult<()> {
+            Ok(())
+        }
+    }
+
+    /// Git mock that records all VCS calls for mutation verification.
+    struct TrackingGitBackend {
+        calls: std::sync::Mutex<Vec<String>>,
+        branch_name: Option<String>,
+    }
+
+    impl TrackingGitBackend {
+        fn on_branch(name: &str) -> Self {
+            Self {
+                calls: std::sync::Mutex::new(Vec::new()),
+                branch_name: Some(name.to_string()),
+            }
+        }
+
+        fn take_calls(&self) -> Vec<String> {
+            std::mem::take(&mut *self.calls.lock().unwrap())
+        }
+    }
+
+    impl VcsBackend for TrackingGitBackend {
+        fn vcs_type(&self) -> VcsType {
+            VcsType::Git
+        }
+        fn root(&self) -> &str {
+            "/mock-git"
+        }
+        fn status(&self) -> VcsResult<VcsStatus> {
+            Ok(VcsStatus {
+                files: vec![],
+                working_copy_id: Some("abc123def456".to_string()),
+            })
+        }
+        fn log(&self, _: usize) -> VcsResult<Vec<LogEntry>> {
+            Ok(vec![])
+        }
+        fn diff(&self, _: Option<&str>) -> VcsResult<Vec<DiffEntry>> {
+            Ok(vec![])
+        }
+        fn commit(&self, msg: &str) -> VcsResult<CommitResult> {
+            self.calls.lock().unwrap().push(format!("commit: {msg}"));
+            Ok(CommitResult {
+                id: "mock".to_string(),
+                message: msg.to_string(),
+            })
+        }
+        fn current_commit_id(&self) -> VcsResult<String> {
+            Ok("abc123def456".to_string())
+        }
+        fn current_branch_name(&self) -> VcsResult<Option<String>> {
+            Ok(self.branch_name.clone())
+        }
+        fn create_bookmark(&self, name: &str, _: Option<&str>) -> VcsResult<()> {
+            self.calls
+                .lock()
+                .unwrap()
+                .push(format!("create_bookmark: {name}"));
+            Ok(())
+        }
+        fn delete_bookmark(&self, name: &str) -> VcsResult<()> {
+            self.calls
+                .lock()
+                .unwrap()
+                .push(format!("delete_bookmark: {name}"));
+            Ok(())
+        }
+        fn list_bookmarks(&self, _: Option<&str>) -> VcsResult<Vec<String>> {
+            Ok(vec![])
+        }
+        fn checkout(&self, target: &str) -> VcsResult<()> {
+            self.calls
+                .lock()
+                .unwrap()
+                .push(format!("checkout: {target}"));
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn test_git_start_records_state_without_branching() {
+        let conn = setup_db();
+        let service =
+            TaskWorkflowService::new(&conn, Box::new(SimpleGitBackend::on_branch("my-feature")));
+
+        let task = service
+            .task_service()
+            .create(&CreateTaskInput {
+                description: "Git task".to_string(),
+                context: None,
+                parent_id: None,
+                priority: None,
+                blocked_by: vec![],
+            })
+            .unwrap();
+
+        let started = service.start(&task.id).unwrap();
+
+        assert!(started.started_at.is_some());
+        assert_eq!(started.start_commit, Some("abc123def456".to_string()));
+        // Records current branch name as informational bookmark
+        assert_eq!(started.bookmark, Some("my-feature".to_string()));
+    }
+
+    #[test]
+    fn test_git_start_records_no_branch_when_detached() {
+        let conn = setup_db();
+        let service = TaskWorkflowService::new(&conn, Box::new(SimpleGitBackend::detached()));
+
+        let task = service
+            .task_service()
+            .create(&CreateTaskInput {
+                description: "Detached task".to_string(),
+                context: None,
+                parent_id: None,
+                priority: None,
+                blocked_by: vec![],
+            })
+            .unwrap();
+
+        let started = service.start(&task.id).unwrap();
+        assert!(started.started_at.is_some());
+        assert_eq!(started.start_commit, Some("abc123def456".to_string()));
+        assert!(started.bookmark.is_none()); // Detached = no bookmark
+    }
+
+    #[test]
+    fn test_git_complete_does_not_commit_checkout_or_delete() {
+        let conn = setup_db();
+        let backend = Box::new(TrackingGitBackend::on_branch("my-feature"));
+        // Get pointer to read calls while service owns the backend
+        let calls_ptr: *const std::sync::Mutex<Vec<String>> = &backend.calls;
+
+        let service = TaskWorkflowService::new(&conn, backend);
+        let task = service
+            .task_service()
+            .create(&CreateTaskInput {
+                description: "Git complete test".to_string(),
+                context: None,
+                parent_id: None,
+                priority: None,
+                blocked_by: vec![],
+            })
+            .unwrap();
+
+        service.start(&task.id).unwrap();
+
+        // Clear start() calls, only track complete()
+        // SAFETY: calls_ptr points into backend owned by service (still alive)
+        unsafe {
+            std::mem::take(&mut *(*calls_ptr).lock().unwrap());
+        }
+
+        let completed = service
+            .complete_with_learnings(&task.id, Some("Done"), &["learned".to_string()])
+            .unwrap();
+
+        assert!(completed.completed);
+        assert_eq!(completed.result, Some("Done".to_string()));
+
+        // Verify zero VCS mutations during complete
+        let calls: Vec<String> = unsafe { (*calls_ptr).lock().unwrap().clone() };
+        assert!(
+            calls.is_empty(),
+            "git complete() should make zero VCS calls, but got: {:?}",
+            calls
+        );
+    }
+
+    #[test]
+    fn test_git_milestone_complete_does_not_mutate_vcs() {
+        let conn = setup_db();
+        let backend = Box::new(TrackingGitBackend::on_branch("main"));
+        let calls_ptr: *const std::sync::Mutex<Vec<String>> = &backend.calls;
+
+        let service = TaskWorkflowService::new(&conn, backend);
+        let svc = service.task_service();
+
+        // Create milestone -> task -> subtask
+        let milestone = svc
+            .create(&CreateTaskInput {
+                description: "Milestone".to_string(),
+                context: None,
+                parent_id: None,
+                priority: Some(0),
+                blocked_by: vec![],
+            })
+            .unwrap();
+
+        let task = svc
+            .create(&CreateTaskInput {
+                description: "Task".to_string(),
+                context: None,
+                parent_id: Some(milestone.id.clone()),
+                priority: Some(0),
+                blocked_by: vec![],
+            })
+            .unwrap();
+
+        let subtask = svc
+            .create(&CreateTaskInput {
+                description: "Subtask".to_string(),
+                context: None,
+                parent_id: Some(task.id.clone()),
+                priority: Some(0),
+                blocked_by: vec![],
+            })
+            .unwrap();
+
+        service.start(&subtask.id).unwrap();
+
+        // Clear start() calls
+        unsafe {
+            std::mem::take(&mut *(*calls_ptr).lock().unwrap());
+        }
+
+        // Complete subtask — should cascade to task and milestone
+        let completed = service
+            .complete_with_learnings(
+                &subtask.id,
+                Some("subtask done"),
+                &["git lesson".to_string()],
+            )
+            .unwrap();
+        assert!(completed.completed);
+
+        // Entire hierarchy auto-completed
+        assert!(svc.get(&task.id).unwrap().completed);
+        assert!(svc.get(&milestone.id).unwrap().completed);
+
+        // Zero VCS mutations during entire complete cascade
+        let calls: Vec<String> = unsafe { (*calls_ptr).lock().unwrap().clone() };
+        assert!(
+            calls.is_empty(),
+            "git milestone complete should make zero VCS calls, but got: {:?}",
+            calls
+        );
+
+        // Learnings still bubbled correctly
+        let subtask_learnings =
+            crate::db::learning_repo::list_learnings(&conn, &subtask.id).unwrap();
+        assert_eq!(subtask_learnings.len(), 1);
+        assert_eq!(subtask_learnings[0].content, "git lesson");
+
+        let task_learnings = crate::db::learning_repo::list_learnings(&conn, &task.id).unwrap();
+        assert_eq!(task_learnings.len(), 1);
+        assert_eq!(task_learnings[0].content, "git lesson");
+    }
+
+    #[test]
+    fn test_git_manages_branches_returns_false() {
+        let backend = SimpleGitBackend::on_branch("main");
+        assert!(!backend.manages_branches());
+        assert_eq!(backend.vcs_type(), VcsType::Git);
+    }
+
+    #[test]
+    fn test_jj_manages_branches_returns_true() {
+        let backend = MockVcsBackend;
+        assert!(backend.manages_branches());
+        assert_eq!(backend.vcs_type(), VcsType::Jj);
     }
 
     #[test]

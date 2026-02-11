@@ -1,53 +1,61 @@
 # UI Feedback Fixes Spec
 
-**Created:** 2026-02-01  
-**Status:** Draft  
+**Created:** 2026-02-01\
+**Status:** Draft\
 **Author:** Agent (Oracle-reviewed)
 
 ## Overview
 
-This spec addresses user feedback on the Overseer Task Viewer UI. Issues span graph view, detail panel, timestamps, kanban, list view, and animations.
+This spec addresses user feedback on the Overseer Task Viewer UI. Issues span
+graph view, detail panel, timestamps, kanban, list view, and animations.
 
 ---
 
 ## Issues Summary
 
-| # | Category | Issue | Severity |
-|---|----------|-------|----------|
-| 1 | Graph | Tiny on load | Medium |
-| 2 | Graph | Hotkey hint overlaps zoom controls | Low |
-| 3 | Graph | Minimap broken (black screen) | High |
-| 4 | Graph | Node overlap when zoomed | Medium |
-| 5 | Panel | Open by default | Medium |
-| 6 | Panel | No resize handle | Medium |
-| 7 | Keys | D key confusion (toggle vs delete) | High |
-| 8 | Time | Always shows "just now" | High |
-| 9 | Time | Flash on update | Medium |
-| 10 | Kanban | Sidebar overlaps cards | Medium |
-| 11 | Kanban | Column order wrong | Low |
-| 12 | Kanban | No filters | Medium |
-| 13 | Filter | No milestone filter (all views) | Medium |
-| 14 | List | Can't collapse subtrees | Medium |
-| 15 | Anim | Animations not visible | Low |
+| #  | Category | Issue                              | Severity |
+| -- | -------- | ---------------------------------- | -------- |
+| 1  | Graph    | Tiny on load                       | Medium   |
+| 2  | Graph    | Hotkey hint overlaps zoom controls | Low      |
+| 3  | Graph    | Minimap broken (black screen)      | High     |
+| 4  | Graph    | Node overlap when zoomed           | Medium   |
+| 5  | Panel    | Open by default                    | Medium   |
+| 6  | Panel    | No resize handle                   | Medium   |
+| 7  | Keys     | D key confusion (toggle vs delete) | High     |
+| 8  | Time     | Always shows "just now"            | High     |
+| 9  | Time     | Flash on update                    | Medium   |
+| 10 | Kanban   | Sidebar overlaps cards             | Medium   |
+| 11 | Kanban   | Column order wrong                 | Low      |
+| 12 | Kanban   | No filters                         | Medium   |
+| 13 | Filter   | No milestone filter (all views)    | Medium   |
+| 14 | List     | Can't collapse subtrees            | Medium   |
+| 15 | Anim     | Animations not visible             | Low      |
 
 ---
 
 ## Root Cause Analysis
 
 ### Timestamp Issues (#8, #9)
-- **"Just now" forever**: Using TanStack Query's `dataUpdatedAt` which updates on every 5s refetch, not actual data changes
-- **Flash**: Passing `isFetching` as `isLoading`, causing "syncing..." to blink and hide timestamp repeatedly
+
+- **"Just now" forever**: Using TanStack Query's `dataUpdatedAt` which updates
+  on every 5s refetch, not actual data changes
+- **Flash**: Passing `isFetching` as `isLoading`, causing "syncing..." to blink
+  and hide timestamp repeatedly
 
 ### D Key Conflict (#7)
+
 - Global scope: `d` → toggle detail panel
 - Detail scope: `d` → delete task
 - When detail panel is open with task selected, both scopes are active
 - Current keyboard system: "most recently activated scope wins"
-- User confusion: pressing `d` to close panel can trigger delete if detail scope activated last
+- User confusion: pressing `d` to close panel can trigger delete if detail scope
+  activated last
 
 ### Animation Visibility (#15)
+
 - `animate-pulse-active`: Scaling 10px dot by 1.15x is too subtle
-- `animate-flash-change`: Ends at `background-color: transparent` with `forwards`, causes pop-back when class removed
+- `animate-flash-change`: Ends at `background-color: transparent` with
+  `forwards`, causes pop-back when class removed
 
 ---
 
@@ -68,13 +76,15 @@ This spec addresses user feedback on the Overseer Task Viewer UI. Issues span gr
 +  detailPanelOpen: false,
 ```
 
-**Behavior note:** Keep auto-open on task selection (current behavior in `setSelectedTaskId`).
+**Behavior note:** Keep auto-open on task selection (current behavior in
+`setSelectedTaskId`).
 
 #### 1.2 Remove Minimap
 
 **File:** `ui/src/client/components/TaskGraph.tsx`
 
 Remove:
+
 1. `showMinimap` state (line 821)
 2. `onToggleMinimap` callback and prop drilling
 3. `m` keyboard shortcut (lines 785-790)
@@ -84,11 +94,12 @@ Remove:
 **File:** `ui/src/client/styles/global.css`
 
 Remove:
+
 ```css
 /* React Flow MiniMap theming */
 .react-flow-minimap-themed {
-  background-color: var(--color-surface-primary) !important;
-  border: 1px solid var(--color-border) !important;
+	background-color: var(--color-surface-primary) !important;
+	border: 1px solid var(--color-border) !important;
 }
 ```
 
@@ -101,7 +112,8 @@ Remove:
 +      <div className="absolute bottom-16 left-4 z-10 px-2 py-1 ...">
 ```
 
-**Alternative (cleaner):** Move ReactFlow `<Controls position="top-left" />` instead.
+**Alternative (cleaner):** Move ReactFlow `<Controls position="top-left" />`
+instead.
 
 #### 1.4 Fix D Key Conflict
 
@@ -124,6 +136,7 @@ Change delete hotkey from `d` to `Backspace`.
 ```
 
 Update UI hint in footer:
+
 ```diff
            <Button variant="danger" ...>
              Delete
@@ -145,16 +158,16 @@ Update `KeyboardHelp.tsx` if it lists the shortcut.
 ```typescript
 // Replace:
 const lastUpdated = dataUpdatedAt
-  ? new Date(dataUpdatedAt).toISOString()
-  : undefined;
+	? new Date(dataUpdatedAt).toISOString()
+	: undefined;
 
 // With:
 const lastUpdated = useMemo(() => {
-  if (!tasks?.length) return undefined;
-  return tasks.reduce((max, t) => 
-    t.updatedAt > max ? t.updatedAt : max, 
-    tasks[0].updatedAt
-  );
+	if (!tasks?.length) return undefined;
+	return tasks.reduce(
+		(max, t) => t.updatedAt > max ? t.updatedAt : max,
+		tasks[0].updatedAt,
+	);
 }, [tasks]);
 ```
 
@@ -184,23 +197,30 @@ const lastUpdated = useMemo(() => {
 ```
 
 Update display logic:
+
 ```typescript
 {/* Loading indicator - only on initial load */}
-{isLoading && (
-  <span className="text-xs text-text-dim font-mono">loading...</span>
-)}
+{
+	isLoading && (
+		<span className='text-xs text-text-dim font-mono'>loading...</span>
+	);
+}
 
 {/* Refetch indicator - subtle, doesn't hide timestamp */}
-{isRefetching && !isLoading && (
-  <span className="text-xs text-text-dim font-mono opacity-50">•</span>
-)}
+{
+	isRefetching && !isLoading && (
+		<span className='text-xs text-text-dim font-mono opacity-50'>•</span>
+	);
+}
 
 {/* Last updated - always show when available */}
-{lastUpdated && !isLoading && (
-  <span className="text-xs text-text-dim font-mono">
-    {formatRelativeTime(new Date(lastUpdated))}
-  </span>
-)}
+{
+	lastUpdated && !isLoading && (
+		<span className='text-xs text-text-dim font-mono'>
+			{formatRelativeTime(new Date(lastUpdated))}
+		</span>
+	);
+}
 ```
 
 ---
@@ -212,6 +232,7 @@ Update display logic:
 **File:** `ui/src/client/lib/store.ts`
 
 Add to state:
+
 ```typescript
 interface UIState {
   // ...existing
@@ -229,75 +250,76 @@ setDetailPanelHeight: (height: number) =>
 **File:** `ui/src/client/components/DetailPanel.tsx`
 
 ```tsx
-import { useCallback, useRef, useEffect } from "react";
+import { useCallback, useEffect, useRef } from 'react';
 
 export function DetailPanel() {
-  const detailPanelHeight = useUIStore((s) => s.detailPanelHeight);
-  const setDetailPanelHeight = useUIStore((s) => s.setDetailPanelHeight);
-  const detailPanelOpen = useUIStore((s) => s.detailPanelOpen);
-  
-  const isDragging = useRef(false);
-  const startY = useRef(0);
-  const startHeight = useRef(0);
+	const detailPanelHeight = useUIStore((s) => s.detailPanelHeight);
+	const setDetailPanelHeight = useUIStore((s) => s.setDetailPanelHeight);
+	const detailPanelOpen = useUIStore((s) => s.detailPanelOpen);
 
-  const handlePointerDown = useCallback((e: React.PointerEvent) => {
-    isDragging.current = true;
-    startY.current = e.clientY;
-    startHeight.current = detailPanelHeight;
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
-  }, [detailPanelHeight]);
+	const isDragging = useRef(false);
+	const startY = useRef(0);
+	const startHeight = useRef(0);
 
-  const handlePointerMove = useCallback((e: React.PointerEvent) => {
-    if (!isDragging.current) return;
-    const delta = startY.current - e.clientY;
-    setDetailPanelHeight(startHeight.current + delta);
-  }, [setDetailPanelHeight]);
+	const handlePointerDown = useCallback((e: React.PointerEvent) => {
+		isDragging.current = true;
+		startY.current = e.clientY;
+		startHeight.current = detailPanelHeight;
+		(e.target as HTMLElement).setPointerCapture(e.pointerId);
+	}, [detailPanelHeight]);
 
-  const handlePointerUp = useCallback((e: React.PointerEvent) => {
-    isDragging.current = false;
-    (e.target as HTMLElement).releasePointerCapture(e.pointerId);
-  }, []);
+	const handlePointerMove = useCallback((e: React.PointerEvent) => {
+		if (!isDragging.current) return;
+		const delta = startY.current - e.clientY;
+		setDetailPanelHeight(startHeight.current + delta);
+	}, [setDetailPanelHeight]);
 
-  return (
-    <div 
-      className={panel({ open: detailPanelOpen })}
-      style={detailPanelOpen ? { height: detailPanelHeight } : undefined}
-    >
-      {/* Resize handle - only when open */}
-      {detailPanelOpen && (
-        <div
-          className="h-1 cursor-ns-resize bg-border hover:bg-accent transition-colors shrink-0"
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={handlePointerUp}
-        />
-      )}
-      
-      {/* Toggle bar */}
-      <button className="h-10 px-4 flex items-center ...">
-        ...
-      </button>
-      
-      {/* Content */}
-      ...
-    </div>
-  );
+	const handlePointerUp = useCallback((e: React.PointerEvent) => {
+		isDragging.current = false;
+		(e.target as HTMLElement).releasePointerCapture(e.pointerId);
+	}, []);
+
+	return (
+		<div
+			className={panel({ open: detailPanelOpen })}
+			style={detailPanelOpen ? { height: detailPanelHeight } : undefined}
+		>
+			{/* Resize handle - only when open */}
+			{detailPanelOpen && (
+				<div
+					className='h-1 cursor-ns-resize bg-border hover:bg-accent transition-colors shrink-0'
+					onPointerDown={handlePointerDown}
+					onPointerMove={handlePointerMove}
+					onPointerUp={handlePointerUp}
+					onPointerCancel={handlePointerUp}
+				/>
+			)}
+
+			{/* Toggle bar */}
+			<button className='h-10 px-4 flex items-center ...'>
+				...
+			</button>
+
+			{/* Content */}
+			...
+		</div>
+	);
 }
 ```
 
 Update panel styling to use dynamic height:
+
 ```typescript
 const panel = tv({
-  base: [
-    "border-t border-border bg-bg-secondary flex flex-col",
-  ],
-  variants: {
-    open: {
-      true: "", // height set via style prop
-      false: "h-10",
-    },
-  },
+	base: [
+		'border-t border-border bg-bg-secondary flex flex-col',
+	],
+	variants: {
+		open: {
+			true: '', // height set via style prop
+			false: 'h-10',
+		},
+	},
 });
 ```
 
@@ -338,15 +360,15 @@ Add zoom clamping after initial render:
 const { fitView, getZoom, setViewport, getViewport } = useReactFlow();
 
 useEffect(() => {
-  // After initial layout, clamp zoom if too small
-  const timer = setTimeout(() => {
-    const zoom = getZoom();
-    if (zoom < 0.25) {
-      const viewport = getViewport();
-      setViewport({ ...viewport, zoom: 0.25 });
-    }
-  }, 100); // Small delay for dagre layout to complete
-  return () => clearTimeout(timer);
+	// After initial layout, clamp zoom if too small
+	const timer = setTimeout(() => {
+		const zoom = getZoom();
+		if (zoom < 0.25) {
+			const viewport = getViewport();
+			setViewport({ ...viewport, zoom: 0.25 });
+		}
+	}, 100); // Small delay for dagre layout to complete
+	return () => clearTimeout(timer);
 }, [tasks.length]); // Re-run when task count changes significantly
 ```
 
@@ -369,44 +391,44 @@ useEffect(() => {
 **File:** `ui/src/client/lib/use-url-filter.ts` (new file)
 
 ```typescript
-import { useState, useEffect, useCallback } from "react";
-import type { TaskId } from "../../types.js";
+import { useCallback, useEffect, useState } from 'react';
+import type { TaskId } from '../../types.js';
 
 /**
  * Hook for URL-based milestone filter state.
  * Uses ?milestone=task_xxx param, replaceState to avoid history spam.
  */
 export function useMilestoneFilter() {
-  // Initialize from URL
-  const [filterMilestoneId, setFilterInternal] = useState<TaskId | null>(() => {
-    const params = new URLSearchParams(window.location.search);
-    return params.get("milestone") as TaskId | null;
-  });
+	// Initialize from URL
+	const [filterMilestoneId, setFilterInternal] = useState<TaskId | null>(() => {
+		const params = new URLSearchParams(window.location.search);
+		return params.get('milestone') as TaskId | null;
+	});
 
-  // Sync URL on change
-  const setFilterMilestoneId = useCallback((id: TaskId | null) => {
-    setFilterInternal(id);
-    
-    const url = new URL(window.location.href);
-    if (id) {
-      url.searchParams.set("milestone", id);
-    } else {
-      url.searchParams.delete("milestone");
-    }
-    window.history.replaceState({}, "", url.toString());
-  }, []);
+	// Sync URL on change
+	const setFilterMilestoneId = useCallback((id: TaskId | null) => {
+		setFilterInternal(id);
 
-  // Handle browser back/forward
-  useEffect(() => {
-    const handlePopState = () => {
-      const params = new URLSearchParams(window.location.search);
-      setFilterInternal(params.get("milestone") as TaskId | null);
-    };
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
-  }, []);
+		const url = new URL(window.location.href);
+		if (id) {
+			url.searchParams.set('milestone', id);
+		} else {
+			url.searchParams.delete('milestone');
+		}
+		window.history.replaceState({}, '', url.toString());
+	}, []);
 
-  return [filterMilestoneId, setFilterMilestoneId] as const;
+	// Handle browser back/forward
+	useEffect(() => {
+		const handlePopState = () => {
+			const params = new URLSearchParams(window.location.search);
+			setFilterInternal(params.get('milestone') as TaskId | null);
+		};
+		window.addEventListener('popstate', handlePopState);
+		return () => window.removeEventListener('popstate', handlePopState);
+	}, []);
+
+	return [filterMilestoneId, setFilterMilestoneId] as const;
 }
 ```
 
@@ -465,83 +487,88 @@ interface HeaderProps {
 **File:** `ui/src/client/App.tsx`
 
 ```typescript
-import { useMilestoneFilter } from "./lib/use-url-filter.js";
+import { useMilestoneFilter } from './lib/use-url-filter.js';
 
 // In AppContent:
 const [filterMilestoneId, setFilterMilestoneId] = useMilestoneFilter();
 
 // Get milestones for filter dropdown
-const milestones = useMemo(() => 
-  tasks?.filter((t) => t.depth === 0) ?? [],
-  [tasks]
-);
+const milestones = useMemo(() => tasks?.filter((t) => t.depth === 0) ?? [], [
+	tasks,
+]);
 
 // Validate filter exists (clear if milestone deleted)
 useEffect(() => {
-  if (filterMilestoneId && tasks) {
-    const exists = tasks.some(t => t.id === filterMilestoneId && t.depth === 0);
-    if (!exists) {
-      setFilterMilestoneId(null);
-    }
-  }
+	if (filterMilestoneId && tasks) {
+		const exists = tasks.some(t => t.id === filterMilestoneId && t.depth === 0);
+		if (!exists) {
+			setFilterMilestoneId(null);
+		}
+	}
 }, [tasks, filterMilestoneId, setFilterMilestoneId]);
 
 // Compute visible tasks and external blockers
 const { visibleTasks, externalBlockers } = useMemo(() => {
-  if (!tasks) return { visibleTasks: [], externalBlockers: new Map() };
-  if (!filterMilestoneId) return { visibleTasks: tasks, externalBlockers: new Map() };
-  
-  // Get all descendants of selected milestone
-  const descendants = new Set<TaskId>([filterMilestoneId]);
-  let changed = true;
-  while (changed) {
-    changed = false;
-    for (const task of tasks) {
-      if (task.parentId && descendants.has(task.parentId) && !descendants.has(task.id)) {
-        descendants.add(task.id);
-        changed = true;
-      }
-    }
-  }
-  
-  const visible = tasks.filter((t) => descendants.has(t.id));
-  
-  // Find external blockers (blockers not in visible set)
-  const external = new Map<TaskId, Task>();
-  for (const task of visible) {
-    for (const blockerId of task.blockedBy ?? []) {
-      if (!descendants.has(blockerId)) {
-        const blocker = tasks.find(t => t.id === blockerId);
-        if (blocker) {
-          external.set(blockerId, blocker);
-        }
-      }
-    }
-  }
-  
-  return { visibleTasks: visible, externalBlockers: external };
+	if (!tasks) return { visibleTasks: [], externalBlockers: new Map() };
+	if (!filterMilestoneId) {
+		return { visibleTasks: tasks, externalBlockers: new Map() };
+	}
+
+	// Get all descendants of selected milestone
+	const descendants = new Set<TaskId>([filterMilestoneId]);
+	let changed = true;
+	while (changed) {
+		changed = false;
+		for (const task of tasks) {
+			if (
+				task.parentId && descendants.has(task.parentId)
+				&& !descendants.has(task.id)
+			) {
+				descendants.add(task.id);
+				changed = true;
+			}
+		}
+	}
+
+	const visible = tasks.filter((t) => descendants.has(t.id));
+
+	// Find external blockers (blockers not in visible set)
+	const external = new Map<TaskId, Task>();
+	for (const task of visible) {
+		for (const blockerId of task.blockedBy ?? []) {
+			if (!descendants.has(blockerId)) {
+				const blocker = tasks.find(t => t.id === blockerId);
+				if (blocker) {
+					external.set(blockerId, blocker);
+				}
+			}
+		}
+	}
+
+	return { visibleTasks: visible, externalBlockers: external };
 }, [tasks, filterMilestoneId]);
 
 // Clear selection if filtered out
 useEffect(() => {
-  if (selectedTaskId && visibleTasks.length > 0) {
-    const stillVisible = visibleTasks.some((t) => t.id === selectedTaskId);
-    if (!stillVisible) {
-      setSelectedTaskId(null);
-    }
-  }
+	if (selectedTaskId && visibleTasks.length > 0) {
+		const stillVisible = visibleTasks.some((t) => t.id === selectedTaskId);
+		if (!stillVisible) {
+			setSelectedTaskId(null);
+		}
+	}
 }, [visibleTasks, selectedTaskId, setSelectedTaskId]);
 ```
 
 Pass to views (including external blockers for graph):
+
 ```tsx
 <ViewContainer
-  viewMode={viewMode}
-  tasks={visibleTasks}
-  externalBlockers={externalBlockers}  // new prop for graph view
-  selectedId={selectedTaskId}
-  onSelect={handleTaskSelect}
-/>
+	viewMode={viewMode}
+	tasks={visibleTasks}
+	externalBlockers={externalBlockers} // new prop for graph view
+	selectedId={selectedTaskId}
+	onSelect={handleTaskSelect}
+/>;
 ```
 
 ---
@@ -556,15 +583,15 @@ Pass to views (including external blockers for graph):
 const [collapsedIds, setCollapsedIds] = useState<Set<TaskId>>(new Set());
 
 const toggleCollapse = useCallback((id: TaskId) => {
-  setCollapsedIds((prev) => {
-    const next = new Set(prev);
-    if (next.has(id)) {
-      next.delete(id);
-    } else {
-      next.add(id);
-    }
-    return next;
-  });
+	setCollapsedIds((prev) => {
+		const next = new Set(prev);
+		if (next.has(id)) {
+			next.delete(id);
+		} else {
+			next.add(id);
+		}
+		return next;
+	});
 }, []);
 ```
 
@@ -573,23 +600,23 @@ const toggleCollapse = useCallback((id: TaskId) => {
 ```typescript
 // Update flatVisibleTasks to exclude collapsed descendants
 const flatVisibleTasks = useMemo(() => {
-  const result: Task[] = [];
+	const result: Task[] = [];
 
-  function traverse(parentId: TaskId | null): void {
-    const children = tasksByParent.get(parentId) ?? [];
-    for (const child of children) {
-      if (visibleTaskIds.has(child.id)) {
-        result.push(child);
-        // Only traverse children if not collapsed
-        if (!collapsedIds.has(child.id)) {
-          traverse(child.id);
-        }
-      }
-    }
-  }
+	function traverse(parentId: TaskId | null): void {
+		const children = tasksByParent.get(parentId) ?? [];
+		for (const child of children) {
+			if (visibleTaskIds.has(child.id)) {
+				result.push(child);
+				// Only traverse children if not collapsed
+				if (!collapsedIds.has(child.id)) {
+					traverse(child.id);
+				}
+			}
+		}
+	}
 
-  traverse(null);
-  return result;
+	traverse(null);
+	return result;
 }, [tasksByParent, visibleTaskIds, collapsedIds]);
 ```
 
@@ -644,20 +671,20 @@ function TaskItem({ task, hasChildren, isCollapsed, onToggleCollapse, ...props }
 
 ```css
 @keyframes pulse-active {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-    box-shadow: 0 0 0 0 oklch(0.7 0.18 45 / 0);
-  }
-  50% {
-    opacity: 0.8;
-    transform: scale(1.25);
-    box-shadow: 0 0 8px 4px oklch(0.7 0.18 45 / 0.4);
-  }
+	0%, 100% {
+		opacity: 1;
+		transform: scale(1);
+		box-shadow: 0 0 0 0 oklch(0.7 0.18 45 / 0);
+	}
+	50% {
+		opacity: 0.8;
+		transform: scale(1.25);
+		box-shadow: 0 0 8px 4px oklch(0.7 0.18 45 / 0.4);
+	}
 }
 
 .animate-pulse-active {
-  animation: pulse-active 2s ease-in-out infinite;
+	animation: pulse-active 2s ease-in-out infinite;
 }
 ```
 
@@ -665,17 +692,17 @@ function TaskItem({ task, hasChildren, isCollapsed, onToggleCollapse, ...props }
 
 ```css
 @keyframes flash-change {
-  0% {
-    background-color: var(--color-accent-subtle);
-  }
-  100% {
-    background-color: var(--color-surface-primary);
-  }
+	0% {
+		background-color: var(--color-accent-subtle);
+	}
+	100% {
+		background-color: var(--color-surface-primary);
+	}
 }
 
 .animate-flash-change {
-  animation: flash-change 1s ease-out;
-  /* Removed 'forwards' - let element return to normal styling */
+	animation: flash-change 1s ease-out;
+	/* Removed 'forwards' - let element return to normal styling */
 }
 ```
 
@@ -684,6 +711,7 @@ function TaskItem({ task, hasChildren, isCollapsed, onToggleCollapse, ...props }
 ## Testing Checklist
 
 ### Phase 1
+
 - [ ] Panel starts closed on fresh page load
 - [ ] Selecting task opens panel
 - [ ] Minimap button and 'm' shortcut removed
@@ -692,11 +720,13 @@ function TaskItem({ task, hasChildren, isCollapsed, onToggleCollapse, ...props }
 - [ ] `Backspace` deletes task when in detail view
 
 ### Phase 2
+
 - [ ] Timestamp shows actual last data change, not "just now" forever
 - [ ] "syncing..." only shows on initial load, not refetches
 - [ ] No timestamp flash during background refetch
 
 ### Phase 3
+
 - [ ] Can drag panel resize handle to change height
 - [ ] Panel height persists across view switches
 - [ ] Panel height persists across page reloads (localStorage)
@@ -705,10 +735,12 @@ function TaskItem({ task, hasChildren, isCollapsed, onToggleCollapse, ...props }
 - [ ] Kanban columns: Pending → Blocked → Active → Done
 
 ### Phase 4
+
 - [ ] Graph not tiny on initial load
 - [ ] Zoom level at least 0.25 after fitView
 
 ### Phase 5
+
 - [ ] Milestone dropdown appears in header
 - [ ] Selecting milestone filters all views
 - [ ] "All milestones" shows everything
@@ -722,11 +754,13 @@ function TaskItem({ task, hasChildren, isCollapsed, onToggleCollapse, ...props }
 - [ ] External blocker count badge in list/kanban
 
 ### Phase 6
+
 - [ ] Can collapse/expand any task with children in list view
 - [ ] Keyboard navigation skips collapsed descendants
 - [ ] Collapse state persists during session
 
 ### Phase 7
+
 - [ ] Active status indicator has visible glow/pulse
 - [ ] Task change flash visible without weird pop-back
 
@@ -739,43 +773,48 @@ function TaskItem({ task, hasChildren, isCollapsed, onToggleCollapse, ...props }
 **Decision:** Persist panel height in localStorage with versioned key.
 
 **Implementation:**
+
 ```typescript
 // Key: ui.layout.v1.detailPanelHeight
-const LAYOUT_STORAGE_KEY = "ui.layout.v1.detailPanelHeight";
+const LAYOUT_STORAGE_KEY = 'ui.layout.v1.detailPanelHeight';
 
 // On mount: load from localStorage, validate, clamp
 const loadPanelHeight = (): number => {
-  try {
-    const stored = localStorage.getItem(LAYOUT_STORAGE_KEY);
-    if (stored) {
-      const height = parseInt(stored, 10);
-      if (!isNaN(height) && height >= 120 && height <= window.innerHeight * 0.6) {
-        return height;
-      }
-    }
-  } catch {
-    // localStorage unavailable (private browsing, etc.)
-  }
-  return 320; // default
+	try {
+		const stored = localStorage.getItem(LAYOUT_STORAGE_KEY);
+		if (stored) {
+			const height = parseInt(stored, 10);
+			if (
+				!isNaN(height) && height >= 120 && height <= window.innerHeight * 0.6
+			) {
+				return height;
+			}
+		}
+	} catch {
+		// localStorage unavailable (private browsing, etc.)
+	}
+	return 320; // default
 };
 
 // On change: persist
 const savePanelHeight = (height: number): void => {
-  try {
-    localStorage.setItem(LAYOUT_STORAGE_KEY, String(height));
-  } catch {
-    // Silently fail
-  }
+	try {
+		localStorage.setItem(LAYOUT_STORAGE_KEY, String(height));
+	} catch {
+		// Silently fail
+	}
 };
 ```
 
 **Rationale:**
+
 - Panel height is a personal layout preference
 - Local-first apps should remember user customizations
 - Versioned key allows safe migration if schema changes
 - Matches user expectation that "my machine remembers my setup"
 
 **Guardrails:**
+
 - Validate/clamp on load (handle corrupt or out-of-range values)
 - Single key, no cruft accumulation
 - Provide "Reset layout" action (future: command palette)
@@ -787,61 +826,67 @@ const savePanelHeight = (height: number): void => {
 **Decision:** Store milestone filter in URL, not localStorage.
 
 **Implementation:**
+
 ```typescript
 // Read from URL on mount
 const getInitialMilestoneFilter = (): TaskId | null => {
-  const params = new URLSearchParams(window.location.search);
-  const milestone = params.get("milestone");
-  return milestone as TaskId | null;
+	const params = new URLSearchParams(window.location.search);
+	const milestone = params.get('milestone');
+	return milestone as TaskId | null;
 };
 
 // Update URL on filter change (replaceState to avoid history spam)
 const updateMilestoneFilter = (id: TaskId | null): void => {
-  const url = new URL(window.location.href);
-  if (id) {
-    url.searchParams.set("milestone", id);
-  } else {
-    url.searchParams.delete("milestone");
-  }
-  window.history.replaceState({}, "", url.toString());
+	const url = new URL(window.location.href);
+	if (id) {
+		url.searchParams.set('milestone', id);
+	} else {
+		url.searchParams.delete('milestone');
+	}
+	window.history.replaceState({}, '', url.toString());
 };
 
 // On data load: validate filter still exists
 useEffect(() => {
-  if (filterMilestoneId && tasks) {
-    const exists = tasks.some(t => t.id === filterMilestoneId && t.depth === 0);
-    if (!exists) {
-      setFilterMilestoneId(null); // Auto-clear stale filter
-    }
-  }
+	if (filterMilestoneId && tasks) {
+		const exists = tasks.some(t => t.id === filterMilestoneId && t.depth === 0);
+		if (!exists) {
+			setFilterMilestoneId(null); // Auto-clear stale filter
+		}
+	}
 }, [tasks, filterMilestoneId]);
 ```
 
 **UI requirement:** Always show visible filter indicator when active:
+
 ```tsx
-{filterMilestoneId && (
-  <div className="flex items-center gap-2 px-2 py-1 bg-accent-subtle border border-accent rounded">
-    <span className="text-xs font-mono text-accent">
-      Milestone: {selectedMilestone?.description.slice(0, 20)}
-    </span>
-    <button 
-      onClick={() => setFilterMilestoneId(null)}
-      className="text-accent hover:text-accent-muted"
-      aria-label="Clear filter"
-    >
-      ×
-    </button>
-  </div>
-)}
+{
+	filterMilestoneId && (
+		<div className='flex items-center gap-2 px-2 py-1 bg-accent-subtle border border-accent rounded'>
+			<span className='text-xs font-mono text-accent'>
+				Milestone: {selectedMilestone?.description.slice(0, 20)}
+			</span>
+			<button
+				onClick={() => setFilterMilestoneId(null)}
+				className='text-accent hover:text-accent-muted'
+				aria-label='Clear filter'
+			>
+				×
+			</button>
+		</div>
+	);
+}
 ```
 
 **Rationale:**
+
 - URL state is explicit, not hidden memory
 - Reload/back/forward/bookmark/share all behave transparently
 - Avoids "why is my list empty?" confusion
 - Single param minimal clutter, provides debuggability
 
 **Guardrails:**
+
 - Auto-clear if milestone deleted (replaceState to remove param)
 - Loud visual indicator prevents "forgot I filtered" confusion
 - Single-keystroke clear (Escape or click ×)
@@ -850,61 +895,70 @@ useEffect(() => {
 
 ### 3. Blocker Edges When Filtered → **External placeholder nodes**
 
-**Decision:** Show blockers pointing outside filter as "external" stub nodes, not hidden.
+**Decision:** Show blockers pointing outside filter as "external" stub nodes,
+not hidden.
 
 **Implementation (Graph view):**
+
 ```typescript
 // When building graph, for blockers outside visible set:
 interface ExternalBlockerNode {
-  id: string; // e.g., "external-{blockerId}"
-  type: "external";
-  data: {
-    taskId: TaskId;
-    taskDescription?: string; // if available from full task list
-    milestoneName?: string;
-  };
+	id: string; // e.g., "external-{blockerId}"
+	type: 'external';
+	data: {
+		taskId: TaskId;
+		taskDescription?: string; // if available from full task list
+		milestoneName?: string;
+	};
 }
 
 // Render external node as compact stub:
 const ExternalNodeComponent = ({ data }: NodeProps<ExternalBlockerNode>) => (
-  <div 
-    className="px-2 py-1 bg-surface-secondary border border-dashed border-text-dim rounded text-xs text-text-muted"
-    title={`External: ${data.taskDescription ?? data.taskId}`}
-  >
-    <span className="opacity-50">↗</span> External task
-    {data.milestoneName && (
-      <span className="ml-1 text-text-dim">({data.milestoneName})</span>
-    )}
-  </div>
+	<div
+		className='px-2 py-1 bg-surface-secondary border border-dashed border-text-dim rounded text-xs text-text-muted'
+		title={`External: ${data.taskDescription ?? data.taskId}`}
+	>
+		<span className='opacity-50'>↗</span> External task
+		{data.milestoneName && (
+			<span className='ml-1 text-text-dim'>({data.milestoneName})</span>
+		)}
+	</div>
 );
 
 // Edge to external node: dashed, muted
 const externalEdgeStyle = {
-  stroke: "var(--color-text-dim)",
-  strokeDasharray: "4,4",
-  opacity: 0.5,
+	stroke: 'var(--color-text-dim)',
+	strokeDasharray: '4,4',
+	opacity: 0.5,
 };
 ```
 
 **Implementation (List/Kanban view):**
+
 ```tsx
 // Badge for tasks with external blockers
-{hasExternalBlockers && (
-  <span className="text-[10px] font-mono text-status-blocked opacity-70">
-    + {externalBlockerCount} external
-  </span>
-)}
+{
+	hasExternalBlockers && (
+		<span className='text-[10px] font-mono text-status-blocked opacity-70'>
+			+ {externalBlockerCount} external
+		</span>
+	);
+}
 ```
 
-**Future enhancement:** "Reveal external task" action that temporarily expands filter scope.
+**Future enhancement:** "Reveal external task" action that temporarily expands
+filter scope.
 
 **Rationale:**
+
 - Hiding loses critical scheduling info (task appears unblocked when it isn't)
 - Auto-including breaks filter semantics and can explode scope
 - Placeholder preserves information density while signaling "outside your slice"
-- Consistent mental model: filter controls scope, but dependencies are always truthful
+- Consistent mental model: filter controls scope, but dependencies are always
+  truthful
 
 **Guardrails:**
+
 - If task details unavailable, show count: "Blocked by 2 external tasks"
 - External nodes not selectable (no detail panel for them)
 - Tooltip shows full task ID for debugging
@@ -913,8 +967,10 @@ const externalEdgeStyle = {
 
 ## Future Considerations
 
-1. **Multi-milestone filter**: URL could accept `milestone=x&milestone=y`. Defer until requested.
-2. **"Reveal external" action**: Temporary scope expansion. Medium effort, defer.
+1. **Multi-milestone filter**: URL could accept `milestone=x&milestone=y`. Defer
+   until requested.
+2. **"Reveal external" action**: Temporary scope expansion. Medium effort,
+   defer.
 3. **Reset layout command**: Add to command palette when implemented.
 
 ---

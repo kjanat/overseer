@@ -1,6 +1,7 @@
 # Proxy Support
 
-Configure proxy servers for browser automation, useful for geo-testing, rate limiting avoidance, and corporate environments.
+Configure proxy servers for browser automation, useful for geo-testing, rate
+limiting avoidance, and corporate environments.
 
 ## Basic Proxy Configuration
 
@@ -171,5 +172,6 @@ export NO_PROXY="*.cdn.com,*.static.com"  # Direct CDN access
 1. **Use environment variables** - Don't hardcode proxy credentials
 2. **Set NO_PROXY appropriately** - Avoid routing local traffic through proxy
 3. **Test proxy before automation** - Verify connectivity with simple requests
-4. **Handle proxy failures gracefully** - Implement retry logic for unstable proxies
+4. **Handle proxy failures gracefully** - Implement retry logic for unstable
+   proxies
 5. **Rotate proxies for large scraping jobs** - Distribute load and avoid bans

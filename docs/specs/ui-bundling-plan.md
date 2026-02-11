@@ -1,10 +1,12 @@
 # UI Bundling Plan
 
-Bundle the UI webapp into `@dmmulroy/overseer` so `os ui` works without cloning repo.
+Bundle the UI webapp into `@dmmulroy/overseer` so `os ui` works without cloning
+repo.
 
 ## Current State
 
 **MCP bundling (working):**
+
 ```
 npm/overseer/
 ├── bin/os              # Entry: routes `os mcp` → dist/index.js
@@ -13,6 +15,7 @@ npm/overseer/
 ```
 
 **UI (dev-only):**
+
 ```
 ui/
 ├── src/api/            # Hono API server (tsx watch)
@@ -49,6 +52,7 @@ esbuild src/api/index.ts --bundle --platform=node --outfile=dist-server/server.j
 ```
 
 **Files:**
+
 - Add `ui/esbuild.config.mjs` for server bundling
 - Modify `ui/package.json` scripts
 
@@ -57,32 +61,35 @@ esbuild src/api/index.ts --bundle --platform=node --outfile=dist-server/server.j
 **Problem:** In dev, Vite serves static; in prod, Hono must serve them.
 
 **Modify:** `ui/src/api/app.ts`
-```ts
-import { serveStatic } from "@hono/node-server/serve-static";
 
-if (process.env.NODE_ENV === "production") {
-  app.use("/*", serveStatic({ root: "./static" }));
+```ts
+import { serveStatic } from '@hono/node-server/serve-static';
+
+if (process.env.NODE_ENV === 'production') {
+	app.use('/*', serveStatic({ root: './static' }));
 }
 ```
 
 ### 3. Add `os ui` command to bin/os
 
 **Modify:** `npm/overseer/bin/os`
+
 ```js
-if (command === "ui") {
-  const port = args[1] || process.env.PORT || "6969";
-  process.env.PORT = port;
-  process.env.NODE_ENV = "production";
-  process.env.OVERSEER_CLI_PATH = getBinaryPath();
-  
-  const serverPath = join(__dirname, "..", "dist", "ui", "server.js");
-  import(serverPath);
+if (command === 'ui') {
+	const port = args[1] || process.env.PORT || '6969';
+	process.env.PORT = port;
+	process.env.NODE_ENV = 'production';
+	process.env.OVERSEER_CLI_PATH = getBinaryPath();
+
+	const serverPath = join(__dirname, '..', 'dist', 'ui', 'server.js');
+	import(serverPath);
 }
 ```
 
 ### 4. Build script for npm package
 
 **Add:** `npm/scripts/build-ui.mjs`
+
 ```js
 // 1. Run vite build (outputs to ui/dist/)
 // 2. Run esbuild (outputs to ui/dist-server/)
@@ -94,6 +101,7 @@ if (command === "ui") {
 ### 5. Update npm package.json
 
 **Modify:** `npm/overseer/package.json`
+
 ```json
 {
   "files": ["bin/", "dist/"],
@@ -108,26 +116,28 @@ if (command === "ui") {
 ### 6. CI/CD updates
 
 **Modify:** GitHub Actions workflow to:
+
 1. Build Rust CLI (existing)
-2. Build MCP (existing)  
+2. Build MCP (existing)
 3. Build UI: `cd ui && npm run build:prod`
 4. Assemble npm package
 
 ## File Changes Summary
 
-| Action | File |
-|--------|------|
-| Create | `ui/esbuild.config.mjs` |
-| Modify | `ui/package.json` (add build:prod script) |
-| Modify | `ui/src/api/app.ts` (serve static in prod) |
-| Modify | `npm/overseer/bin/os` (add ui command) |
-| Modify | `npm/overseer/package.json` (add hono dep) |
-| Create | `npm/scripts/build-ui.mjs` |
+| Action | File                                           |
+| ------ | ---------------------------------------------- |
+| Create | `ui/esbuild.config.mjs`                        |
+| Modify | `ui/package.json` (add build:prod script)      |
+| Modify | `ui/src/api/app.ts` (serve static in prod)     |
+| Modify | `npm/overseer/bin/os` (add ui command)         |
+| Modify | `npm/overseer/package.json` (add hono dep)     |
+| Create | `npm/scripts/build-ui.mjs`                     |
 | Modify | `.github/workflows/release.yml` (add ui build) |
 
 ## Dependencies
 
 npm/overseer needs (for UI runtime):
+
 - `@hono/node-server` - HTTP server
 - `better-result` - Already dep of MCP, shared
 - `hono` - Already bundled into server.js
@@ -135,12 +145,15 @@ npm/overseer needs (for UI runtime):
 ## Design Decisions (Resolved)
 
 ### Q1: Auto-open browser → `--open` flag (opt-in)
+
 - Default: print URL only (script-safe, non-intrusive)
 - `os ui --open` gives dev server convenience when desired
 - No `open` package dependency needed initially
 
 ### Q2: Port configuration → All options with precedence
+
 Precedence: `--port` > positional > `PORT` env > default (6969)
+
 ```bash
 os ui                    # default 6969
 os ui 8080               # positional (quick)
@@ -149,15 +162,18 @@ PORT=8080 os ui          # Node deploy convention
 ```
 
 ### Q3: Static path resolution → `import.meta.url`
+
 Use runtime resolution (works in ESM + global installs):
+
 ```js
-import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const staticDir = join(__dirname, "static");
+const staticDir = join(__dirname, 'static');
 ```
 
 ### Q4: Dev/prod parity → CI test + manual smoke
+
 - CI: Integration test on packed/bundled artifact
 - Manual: Smoke test before publish
 - Catches "works in dev, breaks in prod" bugs

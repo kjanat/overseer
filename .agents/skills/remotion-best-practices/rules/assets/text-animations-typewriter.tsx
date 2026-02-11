@@ -1,9 +1,4 @@
-import {
-	AbsoluteFill,
-	interpolate,
-	useCurrentFrame,
-	useVideoConfig,
-} from 'remotion';
+import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from 'remotion';
 
 const COLOR_BG = '#ffffff';
 const COLOR_TEXT = '#000000';
@@ -31,8 +26,7 @@ const getTypedText = ({
 	pauseFrames: number;
 }): string => {
 	const pauseIndex = fullText.indexOf(pauseAfter);
-	const preLen =
-		pauseIndex >= 0 ? pauseIndex + pauseAfter.length : fullText.length;
+	const preLen = pauseIndex >= 0 ? pauseIndex + pauseAfter.length : fullText.length;
 
 	let typedChars = 0;
 	if (frame < preLen * charFrames) {
@@ -53,20 +47,20 @@ const Cursor: React.FC<{
 	frame: number;
 	blinkFrames: number;
 	symbol?: string;
-}> = ({frame, blinkFrames, symbol = '\u258C'}) => {
+}> = ({ frame, blinkFrames, symbol = '\u258C' }) => {
 	const opacity = interpolate(
 		frame % blinkFrames,
 		[0, blinkFrames / 2, blinkFrames],
 		[1, 0, 1],
-		{extrapolateLeft: 'clamp', extrapolateRight: 'clamp'},
+		{ extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
 	);
 
-	return <span style={{opacity}}>{symbol}</span>;
+	return <span style={{ opacity }}>{symbol}</span>;
 };
 
 export const MyAnimation = () => {
 	const frame = useCurrentFrame();
-	const {fps} = useVideoConfig();
+	const { fps } = useVideoConfig();
 
 	const pauseFrames = Math.round(fps * PAUSE_SECONDS);
 

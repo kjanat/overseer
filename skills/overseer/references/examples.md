@@ -4,7 +4,9 @@ Good and bad examples for writing task context and results.
 
 ## Writing Context
 
-Context should include everything needed to do the work without asking questions:
+Context should include everything needed to do the work without asking
+questions:
+
 - **What** needs to be done and why
 - **Implementation approach** (steps, files to modify, technical choices)
 - **Done when** (acceptance criteria)
@@ -13,8 +15,8 @@ Context should include everything needed to do the work without asking questions
 
 ```javascript
 await tasks.create({
-  description: "Migrate storage to one file per task",
-  context: `Change storage format for git-friendliness:
+	description: 'Migrate storage to one file per task',
+	context: `Change storage format for git-friendliness:
 
 Structure:
 .overseer/
@@ -42,26 +44,30 @@ Benefits:
 - Update = single file change
 - Delete = remove file
 - No index to maintain or conflict
-- git diff shows exactly which tasks changed`
+- git diff shows exactly which tasks changed`,
 });
 ```
 
-**Why it works:** States the goal, shows the structure, lists specific implementation steps, explains benefits. Someone could pick this up without asking questions.
+**Why it works:** States the goal, shows the structure, lists specific
+implementation steps, explains benefits. Someone could pick this up without
+asking questions.
 
 ### Bad Context Example
 
 ```javascript
 await tasks.create({
-  description: "Add auth",
-  context: "Need to add authentication"
+	description: 'Add auth',
+	context: 'Need to add authentication',
 });
 ```
 
-**What's missing:** How to implement it, what files, what's done when, technical approach.
+**What's missing:** How to implement it, what files, what's done when, technical
+approach.
 
 ## Writing Results
 
 Results should capture what was actually done:
+
 - **What changed** (implementation summary)
 - **Key decisions** (and why)
 - **Verification** (tests passing, manual testing done)
@@ -69,7 +75,9 @@ Results should capture what was actually done:
 ### Good Result Example
 
 ```javascript
-await tasks.complete(taskId, `Migrated storage from single tasks.json to one file per task:
+await tasks.complete(
+	taskId,
+	`Migrated storage from single tasks.json to one file per task:
 
 Structure:
 - Each task stored as .overseer/tasks/{id}.json
@@ -90,18 +98,21 @@ Trade-offs:
 Verification:
 - All 60 tests passing
 - Build successful
-- Manually tested migration: old -> new format works`);
+- Manually tested migration: old -> new format works`,
+);
 ```
 
-**Why it works:** States what changed, lists implementation details, explains trade-offs, confirms verification.
+**Why it works:** States what changed, lists implementation details, explains
+trade-offs, confirms verification.
 
 ### Bad Result Example
 
 ```javascript
-await tasks.complete(taskId, "Fixed the storage issue");
+await tasks.complete(taskId, 'Fixed the storage issue');
 ```
 
-**What's missing:** What was actually implemented, how, what decisions were made, verification evidence.
+**What's missing:** What was actually implemented, how, what decisions were
+made, verification evidence.
 
 ## Subtask Context Example
 
@@ -109,9 +120,10 @@ Link subtasks to their parent and explain what this piece does specifically:
 
 ```javascript
 await tasks.create({
-  description: "Add token verification function",
-  parentId: jwtTaskId,
-  context: `Part of JWT middleware (parent task). This subtask: token verification.
+	description: 'Add token verification function',
+	parentId: jwtTaskId,
+	context:
+		`Part of JWT middleware (parent task). This subtask: token verification.
 
 What it does:
 - Verify JWT signature and expiration on protected routes
@@ -129,7 +141,7 @@ Done when:
 - Middleware function complete and working
 - Unit tests cover valid/invalid/expired scenarios
 - Integrated into auth routes in server.ts
-- Parent task can use this to protect endpoints`
+- Parent task can use this to protect endpoints`,
 });
 ```
 
@@ -139,17 +151,17 @@ Done when:
 
 ```javascript
 try {
-  await tasks.complete(taskId, "Done");
+	await tasks.complete(taskId, 'Done');
 } catch (err) {
-  if (err.message.includes("pending children")) {
-    const pending = await tasks.list({ parentId: taskId, completed: false });
-    console.log(`Cannot complete: ${pending.length} children pending`);
-    for (const child of pending) {
-      console.log(`- ${child.id}: ${child.description}`);
-    }
-    return;
-  }
-  throw err;
+	if (err.message.includes('pending children')) {
+		const pending = await tasks.list({ parentId: taskId, completed: false });
+		console.log(`Cannot complete: ${pending.length} children pending`);
+		for (const child of pending) {
+			console.log(`- ${child.id}: ${child.description}`);
+		}
+		return;
+	}
+	throw err;
 }
 ```
 
@@ -159,12 +171,14 @@ try {
 const task = await tasks.get(taskId);
 
 if (task.blockedBy.length > 0) {
-  console.log("Task is blocked by:");
-  for (const blockerId of task.blockedBy) {
-    const blocker = await tasks.get(blockerId);
-    console.log(`- ${blocker.description} (${blocker.completed ? 'done' : 'pending'})`);
-  }
-  return "Cannot start - blocked by other tasks";
+	console.log('Task is blocked by:');
+	for (const blockerId of task.blockedBy) {
+		const blocker = await tasks.get(blockerId);
+		console.log(
+			`- ${blocker.description} (${blocker.completed ? 'done' : 'pending'})`,
+		);
+	}
+	return 'Cannot start - blocked by other tasks';
 }
 
 await tasks.start(taskId);
@@ -175,20 +189,20 @@ await tasks.start(taskId);
 ```javascript
 // Create milestone with tasks
 const milestone = await tasks.create({
-  description: "Implement user authentication",
-  context: "Full auth: JWT, login/logout, password reset, rate limiting",
-  priority: 2
+	description: 'Implement user authentication',
+	context: 'Full auth: JWT, login/logout, password reset, rate limiting',
+	priority: 2,
 });
 
 const subtasks = [
-  "Add login endpoint",
-  "Add logout endpoint", 
-  "Implement JWT token service",
-  "Add password reset flow"
+	'Add login endpoint',
+	'Add logout endpoint',
+	'Implement JWT token service',
+	'Add password reset flow',
 ];
 
 for (const desc of subtasks) {
-  await tasks.create({ description: desc, parentId: milestone.id });
+	await tasks.create({ description: desc, parentId: milestone.id });
 }
 ```
 

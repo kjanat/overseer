@@ -9,7 +9,8 @@ metadata:
 
 # Converting Markdown Documents to Overseer Tasks
 
-Use `/overseer-plan` to convert any markdown planning document into trackable Overseer tasks.
+Use `/overseer-plan` to convert any markdown planning document into trackable
+Overseer tasks.
 
 ## When to Use
 
@@ -36,20 +37,22 @@ Use `/overseer-plan` to convert any markdown planning document into trackable Ov
 
 ## Hierarchy Levels
 
-| Depth | Name | Example |
-|-------|------|---------|
-| 0 | **Milestone** | "Add user authentication system" |
-| 1 | **Task** | "Implement JWT middleware" |
-| 2 | **Subtask** | "Add token verification function" |
+| Depth | Name          | Example                           |
+| ----- | ------------- | --------------------------------- |
+| 0     | **Milestone** | "Add user authentication system"  |
+| 1     | **Task**      | "Implement JWT middleware"        |
+| 2     | **Subtask**   | "Add token verification function" |
 
 ## Breakdown Decision
 
 **Create subtasks when:**
+
 - 3-7 clearly separable work items
 - Implementation across multiple files/components
 - Clear sequential dependencies
 
 **Keep single milestone when:**
+
 - 1-2 steps only
 - Work items tightly coupled
 - Plan is exploratory/investigative
@@ -57,11 +60,14 @@ Use `/overseer-plan` to convert any markdown planning document into trackable Ov
 ## Task Quality Criteria
 
 Every task must be:
+
 - **Atomic**: Single committable unit of work
-- **Validated**: Has tests OR explicit acceptance criteria in context ("Done when: ...")
+- **Validated**: Has tests OR explicit acceptance criteria in context ("Done
+  when: ...")
 - **Clear**: Technical, specific, imperative verb
 
 Every milestone must:
+
 - **Demoable**: Produces runnable/testable increment
 - **Builds on prior**: Can depend on previous milestone's output
 
@@ -81,7 +87,8 @@ await tasks.start("<id>");                  // Task (VCS required - creates book
 await tasks.complete("<id>", { result: "...", learnings: [...] });  // Task (VCS required - commits, bubbles learnings)
 ```
 
-**VCS Required**: `start` and `complete` require jj or git (fail with `NotARepository` if none found). CRUD operations work without VCS.
+**VCS Required**: `start` and `complete` require jj or git (fail with
+`NotARepository` if none found). CRUD operations work without VCS.
 
 **Note**: Priority must be 1-5. Blockers cannot be ancestors or descendants.
 
@@ -95,16 +102,16 @@ await tasks.complete("<id>", { result: "...", learnings: [...] });  // Task (VCS
 
 ## Reading Order
 
-| Task | File |
-|------|------|
-| Understanding API | @file references/api.md |
+| Task                 | File                               |
+| -------------------- | ---------------------------------- |
+| Understanding API    | @file references/api.md            |
 | Agent implementation | @file references/implementation.md |
-| See examples | @file references/examples.md |
+| See examples         | @file references/examples.md       |
 
 ## In This Reference
 
-| File | Purpose |
-|------|---------|
-| `references/api.md` | Overseer MCP codemode API types/methods |
+| File                           | Purpose                                       |
+| ------------------------------ | --------------------------------------------- |
+| `references/api.md`            | Overseer MCP codemode API types/methods       |
 | `references/implementation.md` | Step-by-step execution instructions for agent |
-| `references/examples.md` | Complete worked examples |
+| `references/examples.md`       | Complete worked examples                      |

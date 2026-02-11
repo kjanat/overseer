@@ -1,6 +1,7 @@
 # Overseer
 
-Task orchestration for AI agents via MCP. SQLite-backed, native VCS (jj-lib + gix).
+Task orchestration for AI agents via MCP. SQLite-backed, native VCS (jj-lib +
+gix).
 
 ## Install
 
@@ -24,12 +25,12 @@ Add to your MCP client config:
 
 ```json
 {
-  "mcpServers": {
-    "overseer": {
-      "command": "npx",
-      "args": ["@dmmulroy/overseer", "mcp"]
-    }
-  }
+	"mcpServers": {
+		"overseer": {
+			"command": "npx",
+			"args": ["@dmmulroy/overseer", "mcp"]
+		}
+	}
 }
 ```
 
@@ -66,20 +67,20 @@ Single `execute` tool - agents write JS, server runs it:
 
 ```javascript
 const milestone = await tasks.create({
-  description: "User auth system",
-  context: "JWT + refresh tokens"
+	description: 'User auth system',
+	context: 'JWT + refresh tokens',
 });
 
 const login = await tasks.create({
-  description: "Login endpoint",
-  parentId: milestone.id
+	description: 'Login endpoint',
+	parentId: milestone.id,
 });
 
-await tasks.start(login.id);  // VCS required: creates bookmark, records start commit
+await tasks.start(login.id); // VCS required: creates bookmark, records start commit
 // ... do work ...
-await tasks.complete(login.id, {  // VCS required: commits changes, bubbles learnings to parent
-  result: "Implemented with bcrypt",
-  learnings: ["bcrypt rounds should be 12+ for production"]
+await tasks.complete(login.id, { // VCS required: commits changes, bubbles learnings to parent
+	result: 'Implemented with bcrypt',
+	learnings: ['bcrypt rounds should be 12+ for production'],
 });
 
 return { milestone, login };
@@ -115,25 +116,27 @@ tasks.progress(rootId?) // Returns { total, completed, ready, blocked }
 ### learnings
 
 ```javascript
-learnings.list(taskId)  // Learnings are added via tasks.complete()
+learnings.list(taskId); // Learnings are added via tasks.complete()
 ```
 
 ### VCS (Required for Workflow)
 
 VCS operations are integrated into task workflow - no direct API:
 
-| Operation | VCS Effect |
-|-----------|-----------|
-| `tasks.start(id)` | **VCS required** - creates bookmark `task/<id>`, records start commit |
-| `tasks.complete(id)` | **VCS required** - commits changes, deletes bookmark (best-effort) |
-| `tasks.complete(milestone)` | Also cleans ALL descendant bookmarks (depth-1 and depth-2) |
-| `tasks.delete(id)` | Best-effort bookmark cleanup (works without VCS) |
+| Operation                   | VCS Effect                                                            |
+| --------------------------- | --------------------------------------------------------------------- |
+| `tasks.start(id)`           | **VCS required** - creates bookmark `task/<id>`, records start commit |
+| `tasks.complete(id)`        | **VCS required** - commits changes, deletes bookmark (best-effort)    |
+| `tasks.complete(milestone)` | Also cleans ALL descendant bookmarks (depth-1 and depth-2)            |
+| `tasks.delete(id)`          | Best-effort bookmark cleanup (works without VCS)                      |
 
-VCS (jj or git) is **required** for start/complete. CRUD operations work without VCS.
+VCS (jj or git) is **required** for start/complete. CRUD operations work without
+VCS.
 
 ## Progressive Context
 
-Tasks inherit context from ancestors. Learnings bubble to immediate parent on completion (preserving original `sourceTaskId`):
+Tasks inherit context from ancestors. Learnings bubble to immediate parent on
+completion (preserving original `sourceTaskId`):
 
 ```javascript
 const subtask = await tasks.get(subtaskId);
@@ -191,6 +194,7 @@ cd ui && npm install && npm run dev
 ```
 
 Three views:
+
 - **Graph** - DAG visualization with blocking relationships
 - **List** - Filterable task list
 - **Kanban** - Board by completion status
@@ -216,6 +220,7 @@ cd ui && npm install && npm run dev
 ## Storage
 
 SQLite database location (in priority order):
+
 1. `OVERSEER_DB_PATH` env var (if set)
 2. `VCS_ROOT/.overseer/tasks.db` (if in jj/git repo)
 3. `$CWD/.overseer/tasks.db` (fallback)

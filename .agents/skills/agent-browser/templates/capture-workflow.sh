@@ -28,7 +28,7 @@ agent-browser screenshot --full "$OUTPUT_DIR/page-full.png"
 echo "Screenshot saved: $OUTPUT_DIR/page-full.png"
 
 # Get page structure
-agent-browser snapshot -i > "$OUTPUT_DIR/page-structure.txt"
+agent-browser snapshot -i >"$OUTPUT_DIR/page-structure.txt"
 echo "Structure saved: $OUTPUT_DIR/page-structure.txt"
 
 # Extract main content
@@ -41,7 +41,7 @@ echo "Structure saved: $OUTPUT_DIR/page-structure.txt"
 # agent-browser get text ".content" > "$OUTPUT_DIR/content.txt"
 
 # Get full page text
-agent-browser get text body > "$OUTPUT_DIR/page-text.txt"
+agent-browser get text body >"$OUTPUT_DIR/page-text.txt"
 echo "Text content saved: $OUTPUT_DIR/page-text.txt"
 
 # Optional: Save as PDF

@@ -20,24 +20,24 @@ const {fps} = useVideoConfig();
 </Sequence>
 ```
 
-This will by default wrap the component in an absolute fill element.  
+This will by default wrap the component in an absolute fill element.\
 If the items should not be wrapped, use the `layout` prop:
 
 ```tsx
-<Sequence layout="none">
-  <Title />
-</Sequence>
+<Sequence layout='none'>
+	<Title />
+</Sequence>;
 ```
 
 ## Premounting
 
-This loads the component in the timeline before it is actually played.  
+This loads the component in the timeline before it is actually played.\
 Always premount any `<Sequence>`!
 
 ```tsx
 <Sequence premountFor={1 * fps}>
-  <Title />
-</Sequence>
+	<Title />
+</Sequence>;
 ```
 
 ## Series
@@ -45,22 +45,24 @@ Always premount any `<Sequence>`!
 Use `<Series>` when elements should play one after another without overlap.
 
 ```tsx
-import {Series} from 'remotion';
+import { Series } from 'remotion';
 
 <Series>
-  <Series.Sequence durationInFrames={45}>
-    <Intro />
-  </Series.Sequence>
-  <Series.Sequence durationInFrames={60}>
-    <MainContent />
-  </Series.Sequence>
-  <Series.Sequence durationInFrames={30}>
-    <Outro />
-  </Series.Sequence>
+	<Series.Sequence durationInFrames={45}>
+		<Intro />
+	</Series.Sequence>
+	<Series.Sequence durationInFrames={60}>
+		<MainContent />
+	</Series.Sequence>
+	<Series.Sequence durationInFrames={30}>
+		<Outro />
+	</Series.Sequence>
 </Series>;
 ```
 
-Same as with `<Sequence>`, the items will be wrapped in an absolute fill element by default when using `<Series.Sequence>`, unless the `layout` prop is set to `none`.
+Same as with `<Sequence>`, the items will be wrapped in an absolute fill element
+by default when using `<Series.Sequence>`, unless the `layout` prop is set to
+`none`.
 
 ### Series with overlaps
 
@@ -68,25 +70,26 @@ Use negative offset for overlapping sequences:
 
 ```tsx
 <Series>
-  <Series.Sequence durationInFrames={60}>
-    <SceneA />
-  </Series.Sequence>
-  <Series.Sequence offset={-15} durationInFrames={60}>
-    {/* Starts 15 frames before SceneA ends */}
-    <SceneB />
-  </Series.Sequence>
-</Series>
+	<Series.Sequence durationInFrames={60}>
+		<SceneA />
+	</Series.Sequence>
+	<Series.Sequence offset={-15} durationInFrames={60}>
+		{/* Starts 15 frames before SceneA ends */}
+		<SceneB />
+	</Series.Sequence>
+</Series>;
 ```
 
 ## Frame References Inside Sequences
 
-Inside a Sequence, `useCurrentFrame()` returns the local frame (starting from 0):
+Inside a Sequence, `useCurrentFrame()` returns the local frame (starting from
+0):
 
 ```tsx
 <Sequence from={60} durationInFrames={30}>
-  <MyComponent />
-  {/* Inside MyComponent, useCurrentFrame() returns 0-29, not 60-89 */}
-</Sequence>
+	<MyComponent />
+	{/* Inside MyComponent, useCurrentFrame() returns 0-29, not 60-89 */}
+</Sequence>;
 ```
 
 ## Nested Sequences
@@ -95,24 +98,26 @@ Sequences can be nested for complex timing:
 
 ```tsx
 <Sequence from={0} durationInFrames={120}>
-  <Background />
-  <Sequence from={15} durationInFrames={90} layout="none">
-    <Title />
-  </Sequence>
-  <Sequence from={45} durationInFrames={60} layout="none">
-    <Subtitle />
-  </Sequence>
-</Sequence>
+	<Background />
+	<Sequence from={15} durationInFrames={90} layout='none'>
+		<Title />
+	</Sequence>
+	<Sequence from={45} durationInFrames={60} layout='none'>
+		<Subtitle />
+	</Sequence>
+</Sequence>;
 ```
 
 ## Nesting compositions within another
 
-To add a composition within another composition, you can use the `<Sequence>` component with a `width` and `height` prop to specify the size of the composition.
+To add a composition within another composition, you can use the `<Sequence>`
+component with a `width` and `height` prop to specify the size of the
+composition.
 
 ```tsx
 <AbsoluteFill>
-  <Sequence width={COMPOSITION_WIDTH} height={COMPOSITION_HEIGHT}>
-    <CompositionComponent />
-  </Sequence>
-</AbsoluteFill>
+	<Sequence width={COMPOSITION_WIDTH} height={COMPOSITION_HEIGHT}>
+		<CompositionComponent />
+	</Sequence>
+</AbsoluteFill>;
 ```

@@ -1,114 +1,114 @@
 #!/usr/bin/env node
 /**
  * Overseer Host - Unified entry point for MCP and UI servers
- * 
+ *
  * Usage:
  *   overseer-host mcp --cli-path /path/to/os --cwd /path/to/repo
  *   overseer-host ui --cli-path /path/to/os --cwd /path/to/repo --static-root /path/to/dist --port 6969
  */
-import { configureCli } from "./cli.js";
-import { startMcpServer } from "./mcp.js";
-import { startUiServer } from "./ui.js";
+import { configureCli } from './cli.js';
+import { startMcpServer } from './mcp.js';
+import { startUiServer } from './ui.js';
 
 interface Args {
-  mode: "mcp" | "ui";
-  cliPath: string;
-  cwd: string;
-  // UI-specific
-  staticRoot?: string;
-  port?: number;
+	mode: 'mcp' | 'ui';
+	cliPath: string;
+	cwd: string;
+	// UI-specific
+	staticRoot?: string;
+	port?: number;
 }
 
 function parseArgs(argv: string[]): Args {
-  const args = argv.slice(2); // Skip node and script
-  
-  if (args.length === 0) {
-    printUsage();
-    process.exit(1);
-  }
+	const args = argv.slice(2); // Skip node and script
 
-  const mode = args[0];
-  if (mode !== "mcp" && mode !== "ui") {
-    console.error(`Unknown mode: ${mode}`);
-    printUsage();
-    process.exit(1);
-  }
+	if (args.length === 0) {
+		printUsage();
+		process.exit(1);
+	}
 
-  const result: Args = {
-    mode,
-    cliPath: "os",
-    cwd: process.cwd(),
-  };
+	const mode = args[0];
+	if (mode !== 'mcp' && mode !== 'ui') {
+		console.error(`Unknown mode: ${mode}`);
+		printUsage();
+		process.exit(1);
+	}
 
-  for (let i = 1; i < args.length; i++) {
-    const arg = args[i];
-    const next = args[i + 1];
+	const result: Args = {
+		mode,
+		cliPath: 'os',
+		cwd: process.cwd(),
+	};
 
-    switch (arg) {
-      case "--cli-path":
-        if (!next) {
-          console.error("--cli-path requires a value");
-          process.exit(1);
-        }
-        result.cliPath = next;
-        i++;
-        break;
-      case "--cwd":
-        if (!next) {
-          console.error("--cwd requires a value");
-          process.exit(1);
-        }
-        result.cwd = next;
-        i++;
-        break;
-      case "--static-root":
-        if (!next) {
-          console.error("--static-root requires a value");
-          process.exit(1);
-        }
-        result.staticRoot = next;
-        i++;
-        break;
-      case "--port":
-        if (!next) {
-          console.error("--port requires a value");
-          process.exit(1);
-        }
-        result.port = parseInt(next, 10);
-        if (isNaN(result.port)) {
-          console.error(`Invalid port: ${next}`);
-          process.exit(1);
-        }
-        i++;
-        break;
-      case "--help":
-      case "-h":
-        printUsage();
-        process.exit(0);
-        break;
-      default:
-        console.error(`Unknown argument: ${arg}`);
-        printUsage();
-        process.exit(1);
-    }
-  }
+	for (let i = 1; i < args.length; i++) {
+		const arg = args[i];
+		const next = args[i + 1];
 
-  // Validate UI-specific args
-  if (mode === "ui") {
-    if (!result.staticRoot) {
-      console.error("UI mode requires --static-root");
-      process.exit(1);
-    }
-    if (!result.port) {
-      result.port = 6969;
-    }
-  }
+		switch (arg) {
+			case '--cli-path':
+				if (!next) {
+					console.error('--cli-path requires a value');
+					process.exit(1);
+				}
+				result.cliPath = next;
+				i++;
+				break;
+			case '--cwd':
+				if (!next) {
+					console.error('--cwd requires a value');
+					process.exit(1);
+				}
+				result.cwd = next;
+				i++;
+				break;
+			case '--static-root':
+				if (!next) {
+					console.error('--static-root requires a value');
+					process.exit(1);
+				}
+				result.staticRoot = next;
+				i++;
+				break;
+			case '--port':
+				if (!next) {
+					console.error('--port requires a value');
+					process.exit(1);
+				}
+				result.port = parseInt(next, 10);
+				if (isNaN(result.port)) {
+					console.error(`Invalid port: ${next}`);
+					process.exit(1);
+				}
+				i++;
+				break;
+			case '--help':
+			case '-h':
+				printUsage();
+				process.exit(0);
+				break;
+			default:
+				console.error(`Unknown argument: ${arg}`);
+				printUsage();
+				process.exit(1);
+		}
+	}
 
-  return result;
+	// Validate UI-specific args
+	if (mode === 'ui') {
+		if (!result.staticRoot) {
+			console.error('UI mode requires --static-root');
+			process.exit(1);
+		}
+		if (!result.port) {
+			result.port = 6969;
+		}
+	}
+
+	return result;
 }
 
 function printUsage(): void {
-  console.log(`
+	console.log(`
 Overseer Host - Unified MCP and UI server
 
 Usage:
@@ -133,25 +133,25 @@ Examples:
 }
 
 async function main(): Promise<void> {
-  const args = parseArgs(process.argv);
+	const args = parseArgs(process.argv);
 
-  // Configure CLI bridge
-  configureCli({
-    cliPath: args.cliPath,
-    cwd: args.cwd,
-  });
+	// Configure CLI bridge
+	configureCli({
+		cliPath: args.cliPath,
+		cwd: args.cwd,
+	});
 
-  if (args.mode === "mcp") {
-    await startMcpServer();
-  } else {
-    await startUiServer({
-      port: args.port ?? 6969,
-      staticRoot: args.staticRoot ?? "./dist",
-    });
-  }
+	if (args.mode === 'mcp') {
+		await startMcpServer();
+	} else {
+		await startUiServer({
+			port: args.port ?? 6969,
+			staticRoot: args.staticRoot ?? './dist',
+		});
+	}
 }
 
 main().catch((err) => {
-  console.error("Fatal error:", err);
-  process.exit(1);
+	console.error('Fatal error:', err);
+	process.exit(1);
 });

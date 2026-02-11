@@ -1,6 +1,8 @@
 # UI Testing with agent-browser
 
-Automated UI testing using [agent-browser](https://github.com/vercel-labs/agent-browser) - a headless browser CLI designed for AI agents.
+Automated UI testing using
+[agent-browser](https://github.com/vercel-labs/agent-browser) - a headless
+browser CLI designed for AI agents.
 
 ## Quick Start
 
@@ -19,22 +21,22 @@ npm run test:ui
 
 ### Fast Commands (for AI feedback loops)
 
-| Command | Script | Description |
-|---------|--------|-------------|
-| `npm run test:ui:quick` | `quick` | Fast snapshot + checks (< 3s) |
-| `npm run test:ui:verify` | `verify` | Pass/fail assertions |
-| `npm run test:ui:capture` | `capture` | Full state for AI analysis |
-| `npm run test:ui:flow` | `flow` | Run interaction flows |
+| Command                   | Script    | Description                   |
+| ------------------------- | --------- | ----------------------------- |
+| `npm run test:ui:quick`   | `quick`   | Fast snapshot + checks (< 3s) |
+| `npm run test:ui:verify`  | `verify`  | Pass/fail assertions          |
+| `npm run test:ui:capture` | `capture` | Full state for AI analysis    |
+| `npm run test:ui:flow`    | `flow`    | Run interaction flows         |
 
 ### Standard Commands
 
-| Command | Script | Description |
-|---------|--------|-------------|
-| `npm run test:ui` | `test` | Full test suite with screenshots |
-| `npm run test:ui:snapshot` | `snapshot` | Show UI structure (accessibility tree) |
-| `npm run test:ui:screenshot` | `screenshot` | Capture single screenshot |
-| `npm run test:ui:watch` | `watch` | Continuous testing during dev |
-| `npm run test:ui:interact` | `interact` | Open browser for manual testing |
+| Command                      | Script       | Description                            |
+| ---------------------------- | ------------ | -------------------------------------- |
+| `npm run test:ui`            | `test`       | Full test suite with screenshots       |
+| `npm run test:ui:snapshot`   | `snapshot`   | Show UI structure (accessibility tree) |
+| `npm run test:ui:screenshot` | `screenshot` | Capture single screenshot              |
+| `npm run test:ui:watch`      | `watch`      | Continuous testing during dev          |
+| `npm run test:ui:interact`   | `interact`   | Open browser for manual testing        |
 
 ## AI Agent Feedback Loop
 
@@ -64,17 +66,18 @@ Optimized workflow for AI agents iterating on UI changes:
 
 ### AI Review Commands
 
-| Command | Description |
-|---------|-------------|
-| `capture` | Full UI state formatted for LLM analysis |
-| `verify` | Quick pass/fail assertions |
-| `flow <action>` | Run interaction and show before/after |
-| `diff` | Compare current vs previous state |
-| `analyze <focus>` | Format data for ux/a11y/perf analysis |
+| Command           | Description                              |
+| ----------------- | ---------------------------------------- |
+| `capture`         | Full UI state formatted for LLM analysis |
+| `verify`          | Quick pass/fail assertions               |
+| `flow <action>`   | Run interaction and show before/after    |
+| `diff`            | Compare current vs previous state        |
+| `analyze <focus>` | Format data for ux/a11y/perf analysis    |
 
 ## How It Works
 
-agent-browser uses accessibility snapshots with element references (`@e1`, `@e2`, etc.) instead of full DOM, reducing context by ~93%.
+agent-browser uses accessibility snapshots with element references (`@e1`,
+`@e2`, etc.) instead of full DOM, reducing context by ~93%.
 
 ### Basic Workflow
 
@@ -112,12 +115,12 @@ npx agent-browser snapshot -d 3   # Limit depth to 3 levels
 
 ## Environment Variables
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `UI_TEST_URL` | `http://localhost:5173` | Dev server URL |
-| `UI_TEST_OUTPUT` | `./test-results` | Output directory for screenshots |
-| `UI_TEST_INTERVAL` | `5` | Watch mode polling interval (seconds) |
-| `OVERSEER_CLI_CWD` | `process.cwd()` | CLI working directory (for database) |
+| Variable           | Default                 | Description                           |
+| ------------------ | ----------------------- | ------------------------------------- |
+| `UI_TEST_URL`      | `http://localhost:5173` | Dev server URL                        |
+| `UI_TEST_OUTPUT`   | `./test-results`        | Output directory for screenshots      |
+| `UI_TEST_INTERVAL` | `5`                     | Watch mode polling interval (seconds) |
+| `OVERSEER_CLI_CWD` | `process.cwd()`         | CLI working directory (for database)  |
 
 ## Testing with Real Data
 
@@ -136,6 +139,7 @@ npm run dev
 The `scripts/test-ui.sh` script provides:
 
 ### `test` - Full Suite
+
 1. Opens browser and waits for network idle
 2. Screenshots initial state
 3. Verifies critical elements (heading, layout)
@@ -144,29 +148,35 @@ The `scripts/test-ui.sh` script provides:
 6. Final screenshot
 
 ### `watch` - Development Mode
+
 Polls UI every 5 seconds, logs status, captures screenshots on errors.
 
 ### `interact` - Manual Testing
+
 Opens browser and keeps it open for manual `npx agent-browser` commands.
 
 ## Common Patterns
 
 ### Verify Element Exists
+
 ```bash
 npx agent-browser snapshot | grep -q "Overseer" && echo "Found"
 ```
 
 ### Wait for Text
+
 ```bash
 npx agent-browser wait --text "Success"
 ```
 
 ### Check Visibility
+
 ```bash
 npx agent-browser is visible @e1
 ```
 
 ### Fill Form and Submit
+
 ```bash
 npx agent-browser fill @e1 "test input"
 npx agent-browser click @e2
@@ -174,6 +184,7 @@ npx agent-browser wait --load networkidle
 ```
 
 ### Record Video
+
 ```bash
 npx agent-browser record start ./recording.webm
 # ... perform actions ...
@@ -183,12 +194,15 @@ npx agent-browser record stop
 ## Troubleshooting
 
 ### "No interactive elements"
+
 - Page may still be loading - add `sleep 1` after wait
 - Elements may not have proper ARIA roles
 - Try full snapshot: `npx agent-browser snapshot`
 
 ### Refs Invalid After Navigation
+
 Element refs (`@e1`) become invalid after DOM changes. Always re-snapshot:
+
 ```bash
 npx agent-browser click @e1
 npx agent-browser wait --load networkidle
@@ -196,6 +210,7 @@ npx agent-browser snapshot -i  # Get new refs
 ```
 
 ### Browser Not Closing
+
 ```bash
 npx agent-browser close
 # Or kill all:

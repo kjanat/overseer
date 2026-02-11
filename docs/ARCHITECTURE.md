@@ -2,13 +2,16 @@
 
 System design, data model, and invariants for Overseer.
 
-**Scope:** System map for understanding how Overseer works. Not a CLI reference ([CLI.md](CLI.md)), MCP usage guide ([MCP.md](MCP.md)), or UI component docs ([../ui/AGENTS.md](../ui/AGENTS.md)).
+**Scope:** System map for understanding how Overseer works. Not a CLI reference
+([CLI.md](CLI.md)), MCP usage guide ([MCP.md](MCP.md)), or UI component docs
+([../ui/AGENTS.md](../ui/AGENTS.md)).
 
 ## Overview
 
 Overseer is a SQLite-backed task graph manager with:
+
 - **Rust CLI** (`os`) as source of truth for all business logic
-- **Node MCP server** providing codemode interface for agents  
+- **Node MCP server** providing codemode interface for agents
 - **Web UI** for visual task inspection
 - **VCS integration** (jj-first) for workflow operations
 
@@ -32,19 +35,20 @@ Overseer is a SQLite-backed task graph manager with:
 └─────────────────────────────────────────────────────────────┘
 ```
 
-**Key insight:** No long-running Rust daemon. Node pieces are thin shells that spawn the CLI.
+**Key insight:** No long-running Rust daemon. Node pieces are thin shells that
+spawn the CLI.
 
 ## Why This Architecture?
 
-| Decision | Rationale |
-|----------|-----------|
-| **Rust CLI core** | Testable, reusable, performant, type-safe |
-| **Node MCP wrapper** | MCP SDK is JS, codemode needs V8 sandbox |
-| **SQLite not JSON** | Queries, transactions, concurrent safe |
-| **jj-lib not shell** | Native performance, no spawn overhead |
-| **gix not git2** | Pure Rust, no C deps, actively maintained |
-| **JJ-first** | Primary VCS, git as fallback |
-| **ULID IDs** | Sortable, no central coordination |
+| Decision             | Rationale                                 |
+| -------------------- | ----------------------------------------- |
+| **Rust CLI core**    | Testable, reusable, performant, type-safe |
+| **Node MCP wrapper** | MCP SDK is JS, codemode needs V8 sandbox  |
+| **SQLite not JSON**  | Queries, transactions, concurrent safe    |
+| **jj-lib not shell** | Native performance, no spawn overhead     |
+| **gix not git2**     | Pure Rust, no C deps, actively maintained |
+| **JJ-first**         | Primary VCS, git as fallback              |
+| **ULID IDs**         | Sortable, no central coordination         |
 
 ## Package Structure
 
@@ -66,11 +70,11 @@ overseer/
 
 Tasks form a tree with **max depth = 2** (3 levels total):
 
-| Depth | Name | Parent |
-|-------|------|--------|
-| 0 | Milestone | None (root) |
-| 1 | Task | Milestone |
-| 2 | Subtask | Task |
+| Depth | Name      | Parent      |
+| ----- | --------- | ----------- |
+| 0     | Milestone | None (root) |
+| 1     | Task      | Milestone   |
+| 2     | Subtask   | Task        |
 
 **Depth is computed from parent chain, not stored.**
 
@@ -80,32 +84,36 @@ Tasks form a tree with **max depth = 2** (3 levels total):
 
 **Ready:** Task is ready when not completed AND all direct blockers completed.
 
-**Effectively blocked:** Task OR any ancestor has incomplete blockers. Subtrees inherit blocked-ness.
+**Effectively blocked:** Task OR any ancestor has incomplete blockers. Subtrees
+inherit blocked-ness.
 
 ### Learnings
 
-Learnings are knowledge captured during task work. They **bubble upward on completion**:
+Learnings are knowledge captured during task work. They **bubble upward on
+completion**:
 
 1. Learnings attached to completed task
 2. **Copied to immediate parent** (preserves original `source_task_id`)
 3. Siblings see learnings after their tasks complete and merge
 
-**Idempotency:** Unique index on `(task_id, source_task_id, content)` prevents duplicates on re-bubble.
+**Idempotency:** Unique index on `(task_id, source_task_id, content)` prevents
+duplicates on re-bubble.
 
 ## Persistence
 
 ### Tables
 
-| Table | Purpose |
-|-------|---------|
-| `tasks` | Core fields + workflow (`started_at`, `bookmark`, `start_commit`, `commit_sha`) |
-| `learnings` | Content + `source_task_id` for attribution |
-| `task_blockers` | Dependency edges |
-| `task_metadata` | Reserved for extensibility |
+| Table           | Purpose                                                                         |
+| --------------- | ------------------------------------------------------------------------------- |
+| `tasks`         | Core fields + workflow (`started_at`, `bookmark`, `start_commit`, `commit_sha`) |
+| `learnings`     | Content + `source_task_id` for attribution                                      |
+| `task_blockers` | Dependency edges                                                                |
+| `task_metadata` | Reserved for extensibility                                                      |
 
 **ID constraints:** CHECK constraints enforce `task_*` and `lrn_*` prefixes.
 
-**CASCADE deletes:** Deleting a task removes descendants, learnings, and blocker edges.
+**CASCADE deletes:** Deleting a task removes descendants, learnings, and blocker
+edges.
 
 ### Schema Versioning
 
@@ -117,13 +125,14 @@ Learnings are knowledge captured during task work. They **bubble upward on compl
 
 ### CRUD vs Workflow Operations
 
-| Operation | VCS Required? |
-|-----------|---------------|
-| create, list, get, update, delete | No |
-| block, unblock, reopen | No |
-| **start, complete** | **Yes** |
+| Operation                         | VCS Required? |
+| --------------------------------- | ------------- |
+| create, list, get, update, delete | No            |
+| block, unblock, reopen            | No            |
+| **start, complete**               | **Yes**       |
 
-Workflow ops fail with `NotARepository` if no VCS found, or `DirtyWorkingCopy` on uncommitted changes.
+Workflow ops fail with `NotARepository` if no VCS found, or `DirtyWorkingCopy`
+on uncommitted changes.
 
 ### Start Semantics
 
@@ -148,15 +157,18 @@ Workflow ops fail with `NotARepository` if no VCS found, or `DirtyWorkingCopy` o
 4. **Delete bookmark** (best-effort; clear DB field only on success)
 5. **Auto-complete ancestors** if all children done and unblocked
 
-**Important:** Auto-completing parents is DB-only (no extra commit). Milestone completion does run commit logic.
+**Important:** Auto-completing parents is DB-only (no extra commit). Milestone
+completion does run commit logic.
 
 ### Milestone Completion
 
-Completing a milestone triggers best-effort deletion of **ALL descendant bookmarks** (depth 1 and 2), not just direct children.
+Completing a milestone triggers best-effort deletion of **ALL descendant
+bookmarks** (depth 1 and 2), not just direct children.
 
 ### Delete Cleanup
 
 On task delete:
+
 - Prefetch bookmarks before CASCADE removes rows
 - Best-effort delete VCS bookmarks (failure doesn't block deletion)
 
@@ -173,12 +185,14 @@ On task delete:
 ### `next_ready()` - Deepest Unblocked Leaf
 
 DFS from milestone (or across milestones by priority):
+
 - Returns deepest incomplete + effectively unblocked leaf
 - If node's children all complete, node itself is returned
 
 ### `resolve_start_target()` - Follow Blockers
 
 When starting a blocked task:
+
 - Follows incomplete blockers to find actually startable work
 - Detects blocker cycles during traversal
 
@@ -187,16 +201,17 @@ When starting a blocked task:
 `TaskWithContext` assembles context/learnings by depth:
 
 | Depth | Own | Parent | Milestone |
-|-------|-----|--------|-----------|
-| 0 | ✓ | - | - |
-| 1 | ✓ | - | ✓ |
-| 2 | ✓ | ✓ | ✓ |
+| ----- | --- | ------ | --------- |
+| 0     | ✓   | -      | -         |
+| 1     | ✓   | -      | ✓         |
+| 2     | ✓   | ✓      | ✓         |
 
 ## VCS Subsystem
 
 ### Detection (jj-first)
 
 Walk up from cwd:
+
 1. `.jj/` found → `JjBackend` (jj-lib)
 2. `.git/` found → `GixBackend` (gix + git CLI for commits)
 3. Neither → `VcsType::None`
@@ -209,11 +224,11 @@ Walk up from cwd:
 
 ### Workflow VCS Operations
 
-| Operation | VCS Action |
-|-----------|------------|
-| start | `create_bookmark`, `checkout`, `current_commit_id` |
-| complete | `commit`, `delete_bookmark` (best-effort) |
-| delete | `delete_bookmark` (best-effort) |
+| Operation | VCS Action                                         |
+| --------- | -------------------------------------------------- |
+| start     | `create_bookmark`, `checkout`, `current_commit_id` |
+| complete  | `commit`, `delete_bookmark` (best-effort)          |
+| delete    | `delete_bookmark` (best-effort)                    |
 
 ## Public Surfaces
 
@@ -238,7 +253,8 @@ Single `execute` tool. VM sandbox exposes:
 }
 ```
 
-**No `vcs` API in sandbox** - VCS is integrated into `tasks.start`/`tasks.complete`.
+**No `vcs` API in sandbox** - VCS is integrated into
+`tasks.start`/`tasks.complete`.
 
 **Security:** 30s timeout, 50k char output limit, no fs/network/process access.
 
@@ -256,20 +272,22 @@ Rust JSON output is source of truth. TypeScript mirrors it.
 
 **Files that must stay in sync:**
 
-| Rust | TypeScript |
-|------|------------|
-| `overseer/src/types.rs` | `mcp/src/types.ts` |
-| `overseer/src/core/context.rs` | `ui/src/types.ts` |
+| Rust                           | TypeScript         |
+| ------------------------------ | ------------------ |
+| `overseer/src/types.rs`        | `mcp/src/types.ts` |
+| `overseer/src/core/context.rs` | `ui/src/types.ts`  |
 
 **Contract:** `serde(rename_all = "camelCase")` on all Rust structs.
 
-**Caveat:** `InheritedLearnings` in `types.rs` (schema/export) differs from `context.rs` (runtime) - the runtime version includes `own`.
+**Caveat:** `InheritedLearnings` in `types.rs` (schema/export) differs from
+`context.rs` (runtime) - the runtime version includes `own`.
 
 ## Distribution
 
 ### npm Package Structure
 
 `@dmmulroy/overseer` (main package):
+
 - Node router `bin/os`:
   - `os mcp` → starts MCP server
   - `os ui` → starts bundled UI server
@@ -277,10 +295,12 @@ Rust JSON output is source of truth. TypeScript mirrors it.
 - optionalDependencies on platform packages
 
 `@dmmulroy/overseer-<platform>`:
+
 - Contains native `os` binary
 - chmod postinstall for executable
 
 **Environment variables:**
+
 - `OVERSEER_CLI_PATH` - Override CLI binary path
 - `OVERSEER_CLI_CWD` - Override working directory
 - `PORT` - UI server port (default: 6969)
@@ -288,6 +308,7 @@ Rust JSON output is source of truth. TypeScript mirrors it.
 ## Guardrails
 
 **Anti-patterns (never do):**
+
 - Guess VCS type - always detect via `detection.rs`
 - Use depth limit for cycle detection - use DFS
 - Bypass CASCADE delete invariant
@@ -295,6 +316,7 @@ Rust JSON output is source of truth. TypeScript mirrors it.
 - Skip `rebase_descendants()` after `rewrite_commit()` in jj
 
 **Invariants (always true):**
+
 - VCS operations run before DB updates in workflow
 - Bookmark created on start, deleted on complete (best-effort)
 - Milestone completion cleans ALL descendant bookmarks

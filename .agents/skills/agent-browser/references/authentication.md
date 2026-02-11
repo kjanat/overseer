@@ -1,6 +1,7 @@
 # Authentication Patterns
 
-Patterns for handling login flows, session persistence, and authenticated browsing.
+Patterns for handling login flows, session persistence, and authenticated
+browsing.
 
 ## Basic Login Flow
 

@@ -1,6 +1,7 @@
 # Implementation Instructions
 
-**For the skill agent executing `/overseer-plan`.** Follow this workflow exactly.
+**For the skill agent executing `/overseer-plan`.** Follow this workflow
+exactly.
 
 ## Step 1: Read Markdown File
 
@@ -46,6 +47,7 @@ Capture returned task ID for subsequent steps.
 1. **Numbered/bulleted implementation lists (3-7 items)**
    ```markdown
    ## Implementation
+
    1. Create database schema
    2. Build API endpoints
    3. Add frontend components
@@ -54,22 +56,24 @@ Capture returned task ID for subsequent steps.
 2. **Clear subsections under implementation/tasks/steps**
    ```markdown
    ### 1. Backend Changes
+
    - Modify server.ts
-   
+
    ### 2. Frontend Updates
+
    - Update login form
    ```
 
 3. **File-specific sections**
    ```markdown
    ### `src/auth.ts` - Add JWT validation
+
    ### `src/middleware.ts` - Create auth middleware
    ```
 
 4. **Sequential phases**
    ```markdown
-   **Phase 1: Database Layer**
-   **Phase 2: API Layer**
+   **Phase 1: Database Layer** **Phase 2: API Layer**
    ```
 
 ### Do NOT Break Down When
@@ -83,17 +87,18 @@ Capture returned task ID for subsequent steps.
 ## Step 5: Validate Atomicity & Acceptance Criteria
 
 For each proposed task, verify:
+
 - **Atomic**: Can be completed in single commit
 - **Validated**: Has clear acceptance criteria
 
-If task too large → split further.
-If no validation → add to context:
+If task too large → split further. If no validation → add to context:
 
 ```
 Done when: <specific observable criteria>
 ```
 
 Examples of good acceptance criteria:
+
 - "Done when: `npm test` passes, new migration applied"
 - "Done when: API returns 200 with expected payload"
 - "Done when: Component renders without console errors"
@@ -127,24 +132,33 @@ Incorporate Oracle's feedback, then proceed to create tasks.
 ### Extract for Each Subtask
 
 1. **Description**: Strip numbering, keep concise (1-10 words), imperative form
-2. **Context**: Section content + "Part of [milestone description]" + acceptance criteria
+2. **Context**: Section content + "Part of [milestone description]" + acceptance
+   criteria
 
 ### Flat Breakdown
 
 ```javascript
 const subtasks = [
-  { description: "Create database schema", context: "Schema for users/tokens. Part of 'Add Auth'.\n\nDone when: Migration runs, tables exist with FK constraints." },
-  { description: "Build API endpoints", context: "POST /auth/register, /auth/login. Part of 'Add Auth'.\n\nDone when: Endpoints return expected responses, tests pass." }
+	{
+		description: 'Create database schema',
+		context:
+			"Schema for users/tokens. Part of 'Add Auth'.\n\nDone when: Migration runs, tables exist with FK constraints.",
+	},
+	{
+		description: 'Build API endpoints',
+		context:
+			"POST /auth/register, /auth/login. Part of 'Add Auth'.\n\nDone when: Endpoints return expected responses, tests pass.",
+	},
 ];
 
 const created = [];
 for (const sub of subtasks) {
-  const task = await tasks.create({
-    description: sub.description,
-    context: sub.context,
-    parentId: milestone.id
-  });
-  created.push(task);
+	const task = await tasks.create({
+		description: sub.description,
+		context: sub.context,
+		parentId: milestone.id,
+	});
+	created.push(task);
 }
 return { milestone: milestone.id, subtasks: created };
 ```
@@ -154,18 +168,18 @@ return { milestone: milestone.id, subtasks: created };
 ```javascript
 // Create phase as task under milestone
 const phase = await tasks.create({
-  description: "Backend Infrastructure",
-  context: "Phase 1 context...",
-  parentId: milestoneId
+	description: 'Backend Infrastructure',
+	context: 'Phase 1 context...',
+	parentId: milestoneId,
 });
 
 // Create subtasks under phase
 for (const item of phaseItems) {
-  await tasks.create({
-    description: item.description,
-    context: item.context,
-    parentId: phase.id
-  });
+	await tasks.create({
+		description: item.description,
+		context: item.context,
+		parentId: phase.id,
+	});
 }
 ```
 

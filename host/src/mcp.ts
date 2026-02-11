@@ -1,14 +1,11 @@
 /**
  * MCP Server - registers execute tool with type definitions
  */
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-} from "@modelcontextprotocol/sdk/types.js";
-import { execute, ExecutionError } from "./executor.js";
-import { CliError, CliTimeoutError } from "./types.js";
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import { execute, ExecutionError } from './executor.js';
+import { CliError, CliTimeoutError } from './types.js';
 
 const TOOL_DESCRIPTION = `
 Execute JavaScript code to interact with Overseer task management.
@@ -168,98 +165,98 @@ const allTasks = await tasks.list({ archived: "all" });
  * Create and configure MCP server
  */
 export function createMcpServer(): Server {
-  const server = new Server(
-    {
-      name: "overseer-mcp",
-      version: "0.10.0",
-    },
-    {
-      capabilities: {
-        tools: {},
-      },
-    }
-  );
+	const server = new Server(
+		{
+			name: 'overseer-mcp',
+			version: '0.10.0',
+		},
+		{
+			capabilities: {
+				tools: {},
+			},
+		},
+	);
 
-  // Register tools handler
-  server.setRequestHandler(ListToolsRequestSchema, async () => ({
-    tools: [
-      {
-        name: "execute",
-        description: TOOL_DESCRIPTION,
-        inputSchema: {
-          type: "object",
-          properties: {
-            code: {
-              type: "string",
-              description: "JavaScript code to execute (async/await supported)",
-            },
-          },
-          required: ["code"],
-        },
-      },
-    ],
-  }));
+	// Register tools handler
+	server.setRequestHandler(ListToolsRequestSchema, async () => ({
+		tools: [
+			{
+				name: 'execute',
+				description: TOOL_DESCRIPTION,
+				inputSchema: {
+					type: 'object',
+					properties: {
+						code: {
+							type: 'string',
+							description: 'JavaScript code to execute (async/await supported)',
+						},
+					},
+					required: ['code'],
+				},
+			},
+		],
+	}));
 
-  // Register tool call handler
-  server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    if (request.params.name !== "execute") {
-      throw new Error(`Unknown tool: ${request.params.name}`);
-    }
+	// Register tool call handler
+	server.setRequestHandler(CallToolRequestSchema, async (request) => {
+		if (request.params.name !== 'execute') {
+			throw new Error(`Unknown tool: ${request.params.name}`);
+		}
 
-    const code = request.params.arguments?.code;
-    if (typeof code !== "string") {
-      throw new Error("Missing or invalid 'code' argument");
-    }
+		const code = request.params.arguments?.code;
+		if (typeof code !== 'string') {
+			throw new Error("Missing or invalid 'code' argument");
+		}
 
-    try {
-      const result = await execute(code);
-      // JSON.stringify can return undefined for: undefined, functions, symbols
-      // MCP requires text to always be a string
-      const serialized = result === undefined ? undefined : JSON.stringify(result, null, 2);
-      const text = serialized ?? "undefined";
-      return {
-        content: [
-          {
-            type: "text",
-            text,
-          },
-        ],
-      };
-    } catch (err) {
-      let errorMessage: string;
-      if (err instanceof ExecutionError) {
-        errorMessage = `Execution error: ${err.message}${err.stackTrace ? `\n${err.stackTrace}` : ""}`;
-      } else if (err instanceof CliTimeoutError) {
-        errorMessage = `CLI timeout: ${err.message}`;
-      } else if (err instanceof CliError) {
-        errorMessage = `CLI error (exit ${err.exitCode}): ${err.message}`;
-      } else if (err instanceof Error) {
-        errorMessage = `Error: ${err.message}`;
-      } else {
-        errorMessage = `Unknown error: ${String(err)}`;
-      }
+		try {
+			const result = await execute(code);
+			// JSON.stringify can return undefined for: undefined, functions, symbols
+			// MCP requires text to always be a string
+			const serialized = result === undefined ? undefined : JSON.stringify(result, null, 2);
+			const text = serialized ?? 'undefined';
+			return {
+				content: [
+					{
+						type: 'text',
+						text,
+					},
+				],
+			};
+		} catch (err) {
+			let errorMessage: string;
+			if (err instanceof ExecutionError) {
+				errorMessage = `Execution error: ${err.message}${err.stackTrace ? `\n${err.stackTrace}` : ''}`;
+			} else if (err instanceof CliTimeoutError) {
+				errorMessage = `CLI timeout: ${err.message}`;
+			} else if (err instanceof CliError) {
+				errorMessage = `CLI error (exit ${err.exitCode}): ${err.message}`;
+			} else if (err instanceof Error) {
+				errorMessage = `Error: ${err.message}`;
+			} else {
+				errorMessage = `Unknown error: ${String(err)}`;
+			}
 
-      return {
-        content: [
-          {
-            type: "text",
-            text: errorMessage,
-          },
-        ],
-        isError: true,
-      };
-    }
-  });
+			return {
+				content: [
+					{
+						type: 'text',
+						text: errorMessage,
+					},
+				],
+				isError: true,
+			};
+		}
+	});
 
-  return server;
+	return server;
 }
 
 /**
  * Start MCP server with stdio transport
  */
 export async function startMcpServer(): Promise<void> {
-  const server = createMcpServer();
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-  console.error("Overseer MCP server running on stdio");
+	const server = createMcpServer();
+	const transport = new StdioServerTransport();
+	await server.connect(transport);
+	console.error('Overseer MCP server running on stdio');
 }

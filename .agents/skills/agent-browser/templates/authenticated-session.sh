@@ -21,19 +21,19 @@ echo "Authentication workflow for: $LOGIN_URL"
 # SAVED STATE: Skip login if we have valid saved state
 # ══════════════════════════════════════════════════════════════
 if [[ -f "$STATE_FILE" ]]; then
-    echo "Loading saved authentication state..."
-    agent-browser state load "$STATE_FILE"
-    agent-browser open "$LOGIN_URL"
-    agent-browser wait --load networkidle
+	echo "Loading saved authentication state..."
+	agent-browser state load "$STATE_FILE"
+	agent-browser open "$LOGIN_URL"
+	agent-browser wait --load networkidle
 
-    CURRENT_URL=$(agent-browser get url)
-    if [[ "$CURRENT_URL" != *"login"* ]] && [[ "$CURRENT_URL" != *"signin"* ]]; then
-        echo "Session restored successfully!"
-        agent-browser snapshot -i
-        exit 0
-    fi
-    echo "Session expired, performing fresh login..."
-    rm -f "$STATE_FILE"
+	CURRENT_URL=$(agent-browser get url)
+	if [[ "$CURRENT_URL" != *"login"* ]] && [[ "$CURRENT_URL" != *"signin"* ]]; then
+		echo "Session restored successfully!"
+		agent-browser snapshot -i
+		exit 0
+	fi
+	echo "Session expired, performing fresh login..."
+	rm -f "$STATE_FILE"
 fi
 
 # ══════════════════════════════════════════════════════════════

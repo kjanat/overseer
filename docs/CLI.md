@@ -28,6 +28,7 @@ os task create \
 ```
 
 **Arguments:**
+
 - `-d, --description` (required): Task description
 - `--context`: Additional context information
 - `--parent`: Parent task ID (creates subtask)
@@ -35,6 +36,7 @@ os task create \
 - `--blocked-by`: Comma-separated list of blocking task IDs
 
 **Examples:**
+
 ```bash
 # Create milestone (depth 0)
 os task create -d "Implement user auth"
@@ -58,6 +60,7 @@ os task get TASK_ID
 ```
 
 **Output:** TaskWithContext (flat structure with inherited context):
+
 ```json
 {
   "id": "task_01JQAZ...",
@@ -94,15 +97,21 @@ os task list \
 ```
 
 **Filters:**
+
 - `--parent`: Show children of specific task (conflicts with depth filters)
 - `--ready`: Only show ready tasks (no blockers, not completed)
 - `--completed`: Only show completed tasks
-- `-m, --milestones`: Show only depth 0 tasks (mutually exclusive with --tasks/--subtasks)
-- `-t, --tasks`: Show only depth 1 tasks (mutually exclusive with --milestones/--subtasks)
-- `-s, --subtasks`: Show only depth 2 tasks (mutually exclusive with --milestones/--tasks)
-- `--flat`: Show flat list instead of tree view (human output only; JSON always flat)
+- `-m, --milestones`: Show only depth 0 tasks (mutually exclusive with
+  --tasks/--subtasks)
+- `-t, --tasks`: Show only depth 1 tasks (mutually exclusive with
+  --milestones/--subtasks)
+- `-s, --subtasks`: Show only depth 2 tasks (mutually exclusive with
+  --milestones/--tasks)
+- `--flat`: Show flat list instead of tree view (human output only; JSON always
+  flat)
 
 **Examples:**
+
 ```bash
 # List all tasks
 os task list
@@ -130,6 +139,7 @@ os task update TASK_ID \
 ```
 
 **Examples:**
+
 ```bash
 # Update description
 os task update task_01JQAZ... -d "Updated description"
@@ -150,6 +160,7 @@ os task start TASK_ID
 ```
 
 **Behavior:**
+
 - **VCS required** - fails with `NotARepository` if no jj/git
 - Follows blockers to find startable work
 - Cascades down to deepest incomplete leaf
@@ -158,12 +169,15 @@ os task start TASK_ID
 - Returns the task that was actually started
 
 **Algorithm:**
+
 1. If requested task is blocked, follow blockers to find startable work
 2. Cascade down through hierarchy to deepest incomplete leaf
-3. Start that leaf task (set `started_at`, create VCS bookmark, record start commit)
+3. Start that leaf task (set `started_at`, create VCS bookmark, record start
+   commit)
 4. Error only if no startable task found after exhausting all paths
 
 **Examples:**
+
 ```bash
 # Start work on a task
 os task start task_01JQAZ...
@@ -182,10 +196,12 @@ os task complete TASK_ID [--result "Completion notes"] [--learning "..."]...
 ```
 
 **Arguments:**
+
 - `--result`: Completion notes/summary
 - `--learning`: Learning discovered during task (repeatable flag)
 
 **Behavior:**
+
 - **VCS required** - fails with `NotARepository` if no jj/git
 - Sets `status = completed`, `completed_at = now()`
 - Commits changes (NothingToCommit treated as success)
@@ -194,12 +210,14 @@ os task complete TASK_ID [--result "Completion notes"] [--learning "..."]...
 - **Bubble-up:** Auto-completes parent if all siblings done and parent unblocked
 
 **Bubble-up Algorithm:**
+
 1. After completing task, check if parent has any pending children
 2. If no pending children AND parent is not blocked, auto-complete parent
 3. Recursively bubble up to milestone level
 4. Stop if parent is blocked or has pending children
 
 **Examples:**
+
 ```bash
 # Simple completion
 os task complete task_01JQAZ...
@@ -242,9 +260,11 @@ Add blocker dependency.
 os task block TASK_ID --by BLOCKER_ID
 ```
 
-Marks `TASK_ID` as blocked by `BLOCKER_ID`. Task becomes not ready until blocker completes.
+Marks `TASK_ID` as blocked by `BLOCKER_ID`. Task becomes not ready until blocker
+completes.
 
 **Example:**
+
 ```bash
 os task block task_01JQAZ... --by task_01JQBA...
 ```
@@ -266,24 +286,29 @@ os task next-ready [--milestone MILESTONE_ID]
 ```
 
 **Behavior:**
+
 - **Depth-first traversal** through task hierarchy
 - Returns **deepest incomplete leaf** that is not blocked
-- Respects **effective-unblocked inheritance** (if ancestor is blocked, subtree is blocked)
+- Respects **effective-unblocked inheritance** (if ancestor is blocked, subtree
+  is blocked)
 - Returns milestone itself if it has no children and is unblocked
 - Returns `null` if no ready tasks found
 
 **Algorithm:**
+
 1. DFS traversal respecting priority ordering (p0 = highest priority first)
 2. A task is "effectively blocked" if it OR any ancestor has incomplete blockers
 3. Find deepest incomplete leaf that is effectively unblocked
 4. Ordering: `priority ASC`, `created_at ASC`, `id ASC`
 
 **Effective-Unblocked Inheritance:**
+
 - If milestone is blocked → entire subtree is blocked
 - Children completing doesn't unblock a blocked parent
 - Children are NOT considered blockers (only explicit `blocked_by` relations)
 
 **Example:**
+
 ```bash
 # Get next ready task globally (searches all milestones)
 os task next-ready
@@ -293,6 +318,7 @@ os task next-ready --milestone task_01JQAZ...
 ```
 
 **Output (JSON):**
+
 ```json
 // If task found (TaskWithContext - flat structure):
 {
@@ -328,11 +354,14 @@ os task tree [TASK_ID]
 ```
 
 **Behavior:**
-- If `TASK_ID` provided, shows tree rooted at that task (JSON: single `TaskTree`)
+
+- If `TASK_ID` provided, shows tree rooted at that task (JSON: single
+  `TaskTree`)
 - If omitted, shows **all milestone trees** (JSON: `TaskTree[]` array)
 - Output includes all descendants recursively
 
 **Example:**
+
 ```bash
 # Show tree for specific milestone
 os task tree task_01JQAZ...
@@ -342,6 +371,7 @@ os task tree
 ```
 
 **JSON Output:**
+
 ```json
 // With TASK_ID (single tree):
 { "task": {...}, "children": [...] }
@@ -361,9 +391,11 @@ Search tasks by text query.
 os task search "query text"
 ```
 
-Searches task `description`, `context`, and `result` fields (case-insensitive substring match).
+Searches task `description`, `context`, and `result` fields (case-insensitive
+substring match).
 
 **Example:**
+
 ```bash
 os task search "authentication"
 ```
@@ -377,21 +409,24 @@ os task progress [TASK_ID]
 ```
 
 **Behavior:**
+
 - If `TASK_ID` provided, counts that task and all descendants
 - If omitted, counts all tasks in database
 - Returns aggregate counts
 
 **Output:**
+
 ```json
 {
-  "total": 10,
-  "completed": 3,
-  "ready": 5,      // !completed && !effectivelyBlocked
-  "blocked": 2     // !completed && effectivelyBlocked
+	"total": 10,
+	"completed": 3,
+	"ready": 5, // !completed && !effectivelyBlocked
+	"blocked": 2 // !completed && effectivelyBlocked
 }
 ```
 
 **Example:**
+
 ```bash
 # Progress for specific milestone
 os task progress task_01JQAZ...
@@ -411,11 +446,13 @@ os learning add TASK_ID "Learning content" [--source SOURCE_TASK_ID]
 ```
 
 **Arguments:**
+
 - `TASK_ID`: Task to attach learning to
 - `content`: Learning text
 - `--source`: Optional source task that generated this learning
 
 **Examples:**
+
 ```bash
 # Simple learning
 os learning add task_01JQAZ... "bcrypt rounds should be 12 for production"
@@ -453,10 +490,11 @@ os vcs detect
 ```
 
 **Output:**
+
 ```json
 {
-  "type": "jj",  // or "git", "none"
-  "root": "/path/to/repo"
+	"type": "jj", // or "git", "none"
+	"root": "/path/to/repo"
 }
 ```
 
@@ -469,13 +507,14 @@ os vcs status
 ```
 
 **Output:**
+
 ```json
 {
-  "files": [
-    { "path": "path/to/modified.rs", "status": "modified" },
-    { "path": "path/to/new.txt", "status": "added" }
-  ],
-  "workingCopyId": "abc123..."
+	"files": [
+		{ "path": "path/to/modified.rs", "status": "modified" },
+		{ "path": "path/to/new.txt", "status": "added" }
+	],
+	"workingCopyId": "abc123..."
 }
 ```
 
@@ -488,9 +527,11 @@ os vcs log [--limit N]
 ```
 
 **Options:**
+
 - `--limit`: Max commits to return (default: 10)
 
 **Output:**
+
 ```json
 [
   {
@@ -512,13 +553,16 @@ os vcs diff [BASE_REV]
 ```
 
 **Arguments:**
-- `BASE_REV` (optional): Base revision to diff against (defaults to current commit)
+
+- `BASE_REV` (optional): Base revision to diff against (defaults to current
+  commit)
 
 **Output:**
+
 ```json
 [
-  { "path": "src/auth.rs", "changeType": "modified" },
-  { "path": "tests/auth_test.rs", "changeType": "added" }
+	{ "path": "src/auth.rs", "changeType": "modified" },
+	{ "path": "tests/auth_test.rs", "changeType": "added" }
 ]
 ```
 
@@ -531,14 +575,16 @@ os vcs commit -m "Commit message"
 ```
 
 **Behavior:**
+
 - **jj**: Describes current change and creates new change
 - **git**: Stages all changes (`git add -A`) and commits
 
 **Output:**
+
 ```json
 {
-  "id": "abc123...",
-  "message": "Commit message"
+	"id": "abc123...",
+	"message": "Commit message"
 }
 ```
 
@@ -551,9 +597,11 @@ os vcs cleanup [--delete]
 ```
 
 **Options:**
+
 - `--delete`: Actually delete orphaned branches (default is dry-run/list only)
 
 **Behavior:**
+
 - Lists branches matching `task/*` pattern where:
   - Task no longer exists in database, OR
   - Task is completed (branch wasn't cleaned up)
@@ -562,18 +610,20 @@ os vcs cleanup [--delete]
 - With `--delete`: attempts deletion, reports failures
 
 **Output:**
+
 ```json
 {
-  "orphaned": [
-    { "name": "task/task_01JQAZ...", "reason": "taskNotFound" },
-    { "name": "task/task_01JQBA...", "reason": "taskCompleted" }
-  ],
-  "deleted": ["task/task_01JQAZ..."],
-  "failed": []
+	"orphaned": [
+		{ "name": "task/task_01JQAZ...", "reason": "taskNotFound" },
+		{ "name": "task/task_01JQBA...", "reason": "taskCompleted" }
+	],
+	"deleted": ["task/task_01JQAZ..."],
+	"failed": []
 }
 ```
 
 **Examples:**
+
 ```bash
 # List orphaned branches (dry-run)
 os vcs cleanup
@@ -596,16 +646,18 @@ os --json vcs status
 
 Tasks use `completed: boolean` and `effectivelyBlocked: boolean` fields:
 
-| Field | Description |
-|-------|-------------|
-| `completed` | Task is finished |
+| Field                | Description                                  |
+| -------------------- | -------------------------------------------- |
+| `completed`          | Task is finished                             |
 | `effectivelyBlocked` | Task OR any ancestor has incomplete blockers |
 
 **Ready state**: Computed, not stored. Task is ready when:
+
 - `completed = false`
 - `effectivelyBlocked = false`
 
-**Note:** `startedAt` tracks when work began, `completedAt` tracks when finished.
+**Note:** `startedAt` tracks when work began, `completedAt` tracks when
+finished.
 
 ## Task Hierarchy
 
@@ -618,6 +670,7 @@ Milestone (depth 0)
 ```
 
 **Rules:**
+
 - Max depth: 2 (3 levels total)
 - Milestones have `depth = 0`, no parent
 - Tasks have `depth = 1`, parent is milestone
@@ -625,7 +678,8 @@ Milestone (depth 0)
 
 ## Progressive Context
 
-When fetching task with `get` or `next-ready`, the response is **flat** (task fields at root level with context/learnings added):
+When fetching task with `get` or `next-ready`, the response is **flat** (task
+fields at root level with context/learnings added):
 
 ```json
 {
@@ -649,8 +703,8 @@ When fetching task with `get` or `next-ready`, the response is **flat** (task fi
 }
 ```
 
-**Depth 0 (Milestone):** Only `own` context  
-**Depth 1 (Task):** `own` + `milestone` context, `milestone` learnings  
+**Depth 0 (Milestone):** Only `own` context\
+**Depth 1 (Task):** `own` + `milestone` context, `milestone` learnings\
 **Depth 2 (Subtask):** All context + all learnings
 
 ## Error Handling
@@ -698,12 +752,14 @@ os data export --json
 ```
 
 **Export format includes:**
+
 - All tasks with context, priority, timestamps, commit SHAs
 - All learnings with source task references
 - All blocker relationships
 - Version metadata for compatibility checking
 
 **Use cases:**
+
 - Backup
 - Version control for task plans (commit export files to git)
 
@@ -743,4 +799,5 @@ Supported shells: `bash`, `zsh`, `fish`, `powershell`, `elvish`
 
 SQLite database stored at: `$CWD/.overseer/tasks.db`
 
-**Note:** Run all `os` commands from your project root where `.overseer/` directory exists.
+**Note:** Run all `os` commands from your project root where `.overseer/`
+directory exists.

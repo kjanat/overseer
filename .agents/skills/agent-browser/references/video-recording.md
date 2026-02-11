@@ -1,6 +1,7 @@
 # Video Recording
 
-Capture browser automation sessions as video for debugging, documentation, or verification.
+Capture browser automation sessions as video for debugging, documentation, or
+verification.
 
 ## Basic Recording
 

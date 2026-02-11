@@ -1,6 +1,7 @@
 # OS (Rust CLI)
 
-Overseer CLI binary. All business logic lives here - MCP wrapper just spawns and parses JSON.
+Overseer CLI binary. All business logic lives here - MCP wrapper just spawns and
+parses JSON.
 
 ## STRUCTURE
 
@@ -29,16 +30,16 @@ src/
 
 ## WHERE TO LOOK
 
-| Task | File | Notes |
-|------|------|-------|
-| Add CLI subcommand | `commands/{name}.rs` | Wire in `commands/mod.rs` + `main.rs` |
-| Task validation | `core/task_service.rs` | Depth, cycles, blockers |
-| Task lifecycle | `core/workflow_service.rs` | Start/complete with VCS |
-| SQL queries | `db/task_repo.rs` | All raw SQL here |
-| Schema changes | `db/schema.rs` | Bump `SCHEMA_VERSION` |
-| VCS detection | `vcs/detection.rs` | Returns (VcsType, Option<PathBuf>) |
-| Error variants | `error.rs` | Add to `OsError` enum |
-| New ID type | `id.rs` | Follow TaskId pattern |
+| Task               | File                       | Notes                                 |
+| ------------------ | -------------------------- | ------------------------------------- |
+| Add CLI subcommand | `commands/{name}.rs`       | Wire in `commands/mod.rs` + `main.rs` |
+| Task validation    | `core/task_service.rs`     | Depth, cycles, blockers               |
+| Task lifecycle     | `core/workflow_service.rs` | Start/complete with VCS               |
+| SQL queries        | `db/task_repo.rs`          | All raw SQL here                      |
+| Schema changes     | `db/schema.rs`             | Bump `SCHEMA_VERSION`                 |
+| VCS detection      | `vcs/detection.rs`         | Returns (VcsType, Option<PathBuf>)    |
+| Error variants     | `error.rs`                 | Add to `OsError` enum                 |
+| New ID type        | `id.rs`                    | Follow TaskId pattern                 |
 
 ## CONVENTIONS
 
@@ -70,37 +71,48 @@ cargo test -- --nocapture  # See output
 
 ## TESTS
 
-| Location | Type |
-|----------|------|
-| `tests/*.rs` | Integration (3 files) |
-| `src/**/*.rs` | Unit (inline #[test]) |
+| Location      | Type                             |
+| ------------- | -------------------------------- |
+| `tests/*.rs`  | Integration (3 files)            |
+| `src/**/*.rs` | Unit (inline #[test])            |
 | `testutil.rs` | Helpers: JjTestRepo, GitTestRepo |
 
 ## PATTERNS (from learnings)
 
 ### Raw Output Commands
-For commands that don't fit `run()->JSON->print` pattern (e.g., shell completions):
+
+For commands that don't fit `run()->JSON->print` pattern (e.g., shell
+completions):
+
 - Handle in `main()` with early return BEFORE `db_path`/`run()`
 - Use `unreachable!()` with `// PRECONDITION` comment in match arms
 
 ### Color Policy
-- `NO_COLOR` spec: presence of env var disables color, value ignored (`NO_COLOR=''` still disables)
-- `TERM=dumb` is common convention for no ANSI even when `isatty=true` - check it
+
+- `NO_COLOR` spec: presence of env var disables color, value ignored
+  (`NO_COLOR=''` still disables)
+- `TERM=dumb` is common convention for no ANSI even when `isatty=true` - check
+  it
 - Check stdout vs stderr separately - they can differ (stderr piped, stdout TTY)
 - `owo-colors Style::new()` returns no-op style for disabled-color mode
 
 ### clap Patterns
+
 - `clap_complete` version should match `clap` version (both 4.5)
 - `conflicts_with_all`: Use when new flags supersede existing ones semantically
-- `Option<Option<T>>`: Idiomatic for optional flag with optional value (requires `num_args=0..=1`)
+- `Option<Option<T>>`: Idiomatic for optional flag with optional value (requires
+  `num_args=0..=1`)
 
 ### Type Sync
-- Type changes require sync: Rust `types.rs` + TS `types.ts` + display `TreeTask` struct
+
+- Type changes require sync: Rust `types.rs` + TS `types.ts` + display
+  `TreeTask` struct
 - `TaskId` needed `Ord` derive for sort tie-breaker - newtypes don't auto-derive
 
 ## DEPENDENCIES
 
 Key crates:
+
 - `jj-lib =0.37` - Pinned exactly (API breaks between minors)
 - `gix` - Git operations
 - `rusqlite` - SQLite with bundled feature

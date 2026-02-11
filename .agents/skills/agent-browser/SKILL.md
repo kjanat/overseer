@@ -19,7 +19,8 @@ agent-browser close             # Close browser
 ## Core workflow
 
 1. Navigate: `agent-browser open <url>`
-2. Snapshot: `agent-browser snapshot -i` (returns elements with refs like `@e1`, `@e2`)
+2. Snapshot: `agent-browser snapshot -i` (returns elements with refs like `@e1`,
+   `@e2`)
 3. Interact using refs from the snapshot
 4. Re-snapshot after navigation or significant DOM changes
 
@@ -111,8 +112,9 @@ agent-browser record stop                 # Stop and save video
 agent-browser record restart ./take2.webm # Stop current + start new recording
 ```
 
-Recording creates a fresh context but preserves cookies/storage from your session. If no URL is provided, it
-automatically returns to your current page. For smooth demos, explore first, then start recording.
+Recording creates a fresh context but preserves cookies/storage from your
+session. If no URL is provided, it automatically returns to your current page.
+For smooth demos, explore first, then start recording.
 
 ### Wait
 
@@ -323,25 +325,26 @@ agent-browser record stop                 # Save recording
 
 For detailed patterns and best practices, see:
 
-| Reference | Description |
-|-----------|-------------|
-| [references/snapshot-refs.md](references/snapshot-refs.md) | Ref lifecycle, invalidation rules, troubleshooting |
+| Reference                                                            | Description                                               |
+| -------------------------------------------------------------------- | --------------------------------------------------------- |
+| [references/snapshot-refs.md](references/snapshot-refs.md)           | Ref lifecycle, invalidation rules, troubleshooting        |
 | [references/session-management.md](references/session-management.md) | Parallel sessions, state persistence, concurrent scraping |
-| [references/authentication.md](references/authentication.md) | Login flows, OAuth, 2FA handling, state reuse |
-| [references/video-recording.md](references/video-recording.md) | Recording workflows for debugging and documentation |
-| [references/proxy-support.md](references/proxy-support.md) | Proxy configuration, geo-testing, rotating proxies |
+| [references/authentication.md](references/authentication.md)         | Login flows, OAuth, 2FA handling, state reuse             |
+| [references/video-recording.md](references/video-recording.md)       | Recording workflows for debugging and documentation       |
+| [references/proxy-support.md](references/proxy-support.md)           | Proxy configuration, geo-testing, rotating proxies        |
 
 ## Ready-to-use templates
 
 Executable workflow scripts for common patterns:
 
-| Template | Description |
-|----------|-------------|
-| [templates/form-automation.sh](templates/form-automation.sh) | Form filling with validation |
-| [templates/authenticated-session.sh](templates/authenticated-session.sh) | Login once, reuse state |
-| [templates/capture-workflow.sh](templates/capture-workflow.sh) | Content extraction with screenshots |
+| Template                                                                 | Description                         |
+| ------------------------------------------------------------------------ | ----------------------------------- |
+| [templates/form-automation.sh](templates/form-automation.sh)             | Form filling with validation        |
+| [templates/authenticated-session.sh](templates/authenticated-session.sh) | Login once, reuse state             |
+| [templates/capture-workflow.sh](templates/capture-workflow.sh)           | Content extraction with screenshots |
 
 Usage:
+
 ```bash
 ./templates/form-automation.sh https://example.com/form
 ./templates/authenticated-session.sh https://app.example.com/login
@@ -351,6 +354,7 @@ Usage:
 ## HTTPS Certificate Errors
 
 For sites with self-signed or invalid certificates:
+
 ```bash
 agent-browser open https://localhost:8443 --ignore-https-errors
 ```

@@ -1,8 +1,8 @@
 # Overseer UI Redesign Spec
 
-**Created:** 2026-01-31  
-**Type:** Feature Plan  
-**Effort:** XL (5-8 days)  
+**Created:** 2026-01-31\
+**Type:** Feature Plan\
+**Effort:** XL (5-8 days)\
 **Status:** Ready for implementation
 
 ---
@@ -11,7 +11,9 @@
 
 ### What are we solving?
 
-The current Overseer UI is functional but visually generic - it lacks distinctive character and the "developer tool" personality that matches its purpose. Developers debugging agent work need:
+The current Overseer UI is functional but visually generic - it lacks
+distinctive character and the "developer tool" personality that matches its
+purpose. Developers debugging agent work need:
 
 - Quick task status comprehension at a glance
 - Efficient navigation through task hierarchies
@@ -20,7 +22,8 @@ The current Overseer UI is functional but visually generic - it lacks distinctiv
 
 ### For whom?
 
-Developers monitoring/debugging AI agent task execution in local dev environments.
+Developers monitoring/debugging AI agent task execution in local dev
+environments.
 
 ### Cost of not solving?
 
@@ -32,61 +35,63 @@ Developers monitoring/debugging AI agent task execution in local dev environment
 
 ## Constraints
 
-| Constraint | Source | Impact |
-|------------|--------|--------|
-| Performance: 100+ tasks | User requirement | Must maintain virtualization, memoization |
-| Local dev only | Deployment context | No CDN/edge optimization needed |
-| Existing stack | Tech debt | React, ReactFlow, TanStack Query, Tailwind v4 |
-| No new major deps | Implicit | Avoid heavy UI frameworks |
-| 10-30 tasks typical | User context | Optimize for this range, scale to 100+ |
-| 5s polling exists | Current implementation | Enhance, don't replace |
+| Constraint              | Source                 | Impact                                        |
+| ----------------------- | ---------------------- | --------------------------------------------- |
+| Performance: 100+ tasks | User requirement       | Must maintain virtualization, memoization     |
+| Local dev only          | Deployment context     | No CDN/edge optimization needed               |
+| Existing stack          | Tech debt              | React, ReactFlow, TanStack Query, Tailwind v4 |
+| No new major deps       | Implicit               | Avoid heavy UI frameworks                     |
+| 10-30 tasks typical     | User context           | Optimize for this range, scale to 100+        |
+| 5s polling exists       | Current implementation | Enhance, don't replace                        |
 
 ---
 
 ## Aesthetic Direction: Industrial/Technical
 
-Drawing from inspiration images (`docs/inspiration/04-aesthetic-02.png`, `05-aesthetic-03.png`, `10-aesthetic-08.png`):
+Drawing from inspiration images (`docs/inspiration/04-aesthetic-02.png`,
+`05-aesthetic-03.png`, `10-aesthetic-08.png`):
 
-**Tone:** Operational command center - like monitoring nuclear reactors or air traffic control  
-**Typography:** Monospace-dominant with technical labels  
-**Color:** High contrast dark + single vibrant accent (orange)  
+**Tone:** Operational command center - like monitoring nuclear reactors or air
+traffic control\
+**Typography:** Monospace-dominant with technical labels\
+**Color:** High contrast dark + single vibrant accent (orange)\
 **Interaction:** Precise, immediate feedback - no gratuitous animation
 
 ### Design Tokens
 
 ```css
 @theme {
-  /* Core palette (refined) */
-  --color-bg-primary: oklch(0.13 0 0);      /* Near black */
-  --color-bg-secondary: oklch(0.16 0 0);    /* Panel background */
-  --color-surface-primary: oklch(0.18 0 0); /* Cards, inputs */
-  --color-surface-secondary: oklch(0.22 0 0);
-  
-  /* Text */
-  --color-text-primary: oklch(0.9 0 0);     /* High contrast */
-  --color-text-muted: oklch(0.55 0 0);
-  --color-text-dim: oklch(0.4 0 0);
-  
-  /* Accent */
-  --color-accent: oklch(0.7 0.18 45);       /* Warm orange */
-  --color-accent-muted: oklch(0.5 0.12 45);
-  --color-accent-subtle: oklch(0.3 0.08 45);
-  
-  /* Status (semantic) */
-  --color-status-pending: oklch(0.55 0 0);    /* Neutral gray */
-  --color-status-active: oklch(0.7 0.18 45);  /* Orange - pulsing */
-  --color-status-blocked: oklch(0.65 0.2 25); /* Red-orange */
-  --color-status-done: oklch(0.65 0.12 145);  /* Teal-green */
-  
-  /* Borders */
-  --color-border: oklch(0.28 0 0);
-  --color-border-hover: oklch(0.35 0 0);
-  --color-border-focus: var(--color-accent);
-  
-  /* Typography - fully monospace */
-  --font-display: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
-  --font-body: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
-  --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
+	/* Core palette (refined) */
+	--color-bg-primary: oklch(0.13 0 0); /* Near black */
+	--color-bg-secondary: oklch(0.16 0 0); /* Panel background */
+	--color-surface-primary: oklch(0.18 0 0); /* Cards, inputs */
+	--color-surface-secondary: oklch(0.22 0 0);
+
+	/* Text */
+	--color-text-primary: oklch(0.9 0 0); /* High contrast */
+	--color-text-muted: oklch(0.55 0 0);
+	--color-text-dim: oklch(0.4 0 0);
+
+	/* Accent */
+	--color-accent: oklch(0.7 0.18 45); /* Warm orange */
+	--color-accent-muted: oklch(0.5 0.12 45);
+	--color-accent-subtle: oklch(0.3 0.08 45);
+
+	/* Status (semantic) */
+	--color-status-pending: oklch(0.55 0 0); /* Neutral gray */
+	--color-status-active: oklch(0.7 0.18 45); /* Orange - pulsing */
+	--color-status-blocked: oklch(0.65 0.2 25); /* Red-orange */
+	--color-status-done: oklch(0.65 0.12 145); /* Teal-green */
+
+	/* Borders */
+	--color-border: oklch(0.28 0 0);
+	--color-border-hover: oklch(0.35 0 0);
+	--color-border-focus: var(--color-accent);
+
+	/* Typography - fully monospace */
+	--font-display: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
+	--font-body: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
+	--font-mono: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
 }
 ```
 
@@ -100,7 +105,7 @@ Drawing from inspiration images (`docs/inspiration/04-aesthetic-02.png`, `05-aes
 
 2. **Grid Background**: Subtle dot pattern (existing, refine)
 
-3. **Status Indicators**: 
+3. **Status Indicators**:
    - Pending: Static dot
    - Active: Pulsing dot (CSS animation)
    - Blocked: Static dot + dashed border
@@ -133,6 +138,7 @@ Switch between three views via header tabs:
 ```
 
 **Views:**
+
 - **Graph**: Enhanced ReactFlow visualization (default)
 - **Kanban**: 4-column board (Pending | Active | Blocked | Done)
 - **List**: Compact hierarchical tree, full-width
@@ -140,6 +146,7 @@ Switch between three views via header tabs:
 ### F2: Enhanced Graph Visualization
 
 **Node Redesign:**
+
 ```
 ┌─────────────────────────────────────┐
 │ MILESTONE                    P1     │
@@ -155,11 +162,13 @@ Switch between three views via header tabs:
 - Keyboard focus ring
 
 **Edge Improvements:**
+
 - Parent-child: Solid, muted color
 - Blocker: Dashed, accent color, animated flow direction
 - Labels on hover showing relationship type
 
 **Navigation:**
+
 - Arrow keys traverse nodes
 - Enter to select/focus detail
 - Space to collapse/expand
@@ -167,23 +176,23 @@ Switch between three views via header tabs:
 
 ### F3: Keyboard Navigation System
 
-| Key | Context | Action |
-|-----|---------|--------|
-| `j` / `↓` | List/Graph | Next task |
-| `k` / `↑` | List/Graph | Previous task |
-| `h` / `←` | Graph | Parent / collapse |
-| `l` / `→` | Graph | First child / expand |
-| `Enter` | Any | Open detail panel |
-| `Escape` | Detail/Edit | Close / cancel |
-| `e` | Detail | Edit description |
-| `c` | Detail | Complete task (if unblocked) |
-| `d` | Detail | Delete task (with confirm) |
-| `1` | Header | Switch to Graph view |
-| `2` | Header | Switch to Kanban view |
-| `3` | Header | Switch to List view |
-| `g g` | Any | Jump to first task |
-| `G` | Any | Jump to last task |
-| `?` | Any | Show keyboard shortcuts |
+| Key       | Context     | Action                       |
+| --------- | ----------- | ---------------------------- |
+| `j` / `↓` | List/Graph  | Next task                    |
+| `k` / `↑` | List/Graph  | Previous task                |
+| `h` / `←` | Graph       | Parent / collapse            |
+| `l` / `→` | Graph       | First child / expand         |
+| `Enter`   | Any         | Open detail panel            |
+| `Escape`  | Detail/Edit | Close / cancel               |
+| `e`       | Detail      | Edit description             |
+| `c`       | Detail      | Complete task (if unblocked) |
+| `d`       | Detail      | Delete task (with confirm)   |
+| `1`       | Header      | Switch to Graph view         |
+| `2`       | Header      | Switch to Kanban view        |
+| `3`       | Header      | Switch to List view          |
+| `g g`     | Any         | Jump to first task           |
+| `G`       | Any         | Jump to last task            |
+| `?`       | Any         | Show keyboard shortcuts      |
 
 ### F4: Real-time Status Indicators
 
@@ -249,25 +258,25 @@ Add Zustand store for UI state:
 
 ```typescript
 interface UIStore {
-  // View
-  viewMode: 'graph' | 'kanban' | 'list';
-  setViewMode: (mode: ViewMode) => void;
-  
-  // Selection
-  selectedTaskId: TaskId | null;
-  setSelectedTaskId: (id: TaskId | null) => void;
-  
-  // Graph state
-  collapsedNodes: Set<TaskId>;
-  toggleCollapsed: (id: TaskId) => void;
-  
-  // Detail panel
-  detailPanelOpen: boolean;
-  toggleDetailPanel: () => void;
-  
-  // Keyboard focus
-  focusedTaskId: TaskId | null;
-  setFocusedTaskId: (id: TaskId | null) => void;
+	// View
+	viewMode: 'graph' | 'kanban' | 'list';
+	setViewMode: (mode: ViewMode) => void;
+
+	// Selection
+	selectedTaskId: TaskId | null;
+	setSelectedTaskId: (id: TaskId | null) => void;
+
+	// Graph state
+	collapsedNodes: Set<TaskId>;
+	toggleCollapsed: (id: TaskId) => void;
+
+	// Detail panel
+	detailPanelOpen: boolean;
+	toggleDetailPanel: () => void;
+
+	// Keyboard focus
+	focusedTaskId: TaskId | null;
+	setFocusedTaskId: (id: TaskId | null) => void;
 }
 ```
 
@@ -288,18 +297,18 @@ const res = await client.api.tasks[':id'].$get({ param: { id } });
 
 ## Deliverables
 
-| # | Deliverable | Effort | Depends On | Acceptance Criteria |
-|---|-------------|--------|------------|---------------------|
-| D1 | Component library foundation | M | - | Button, Badge, Card, Input, Dialog, Kbd components with variants |
-| D2 | Design token system | S | - | Updated global.css with OKLCH colors, working in all components |
-| D3 | Multi-view layout shell | M | D1 | Header with tabs, view switching works, detail panel toggles |
-| D4 | TaskList redesign | M | D1, D2 | Industrial styling, keyboard nav (j/k), focus states |
-| D5 | TaskGraph redesign | L | D1, D2 | New node design, edge labels, keyboard nav, minimap |
-| D6 | TaskDetail redesign | M | D1, D2 | Collapsible panel, redesigned fields, keyboard shortcuts |
-| D7 | Kanban view | M | D1, D2, D3 | 4-column layout, virtualized, click-to-select |
-| D8 | Keyboard navigation | M | D3, D4, D5 | All shortcuts working, help modal (?) |
-| D9 | Real-time indicators | S | D4, D5, D6 | Pulsing active dot, last-updated time, change highlight |
-| D10 | Polish + refinements | S | All | Consistent spacing, transitions, edge cases |
+| #   | Deliverable                  | Effort | Depends On | Acceptance Criteria                                              |
+| --- | ---------------------------- | ------ | ---------- | ---------------------------------------------------------------- |
+| D1  | Component library foundation | M      | -          | Button, Badge, Card, Input, Dialog, Kbd components with variants |
+| D2  | Design token system          | S      | -          | Updated global.css with OKLCH colors, working in all components  |
+| D3  | Multi-view layout shell      | M      | D1         | Header with tabs, view switching works, detail panel toggles     |
+| D4  | TaskList redesign            | M      | D1, D2     | Industrial styling, keyboard nav (j/k), focus states             |
+| D5  | TaskGraph redesign           | L      | D1, D2     | New node design, edge labels, keyboard nav, minimap              |
+| D6  | TaskDetail redesign          | M      | D1, D2     | Collapsible panel, redesigned fields, keyboard shortcuts         |
+| D7  | Kanban view                  | M      | D1, D2, D3 | 4-column layout, virtualized, click-to-select                    |
+| D8  | Keyboard navigation          | M      | D3, D4, D5 | All shortcuts working, help modal (?)                            |
+| D9  | Real-time indicators         | S      | D4, D5, D6 | Pulsing active dot, last-updated time, change highlight          |
+| D10 | Polish + refinements         | S      | All        | Consistent spacing, transitions, edge cases                      |
 
 ---
 
@@ -327,25 +336,25 @@ Week 3:
 
 ## Trade-offs
 
-| Decision | Choice | Alternative | Why |
-|----------|--------|-------------|-----|
-| Fully monospace | Yes | Mixed typography | Stronger industrial identity |
-| Zustand for UI state | Yes | Context only | Cleaner API, devtools, persist option |
-| tailwind-variants | Yes | cva | Better Tailwind integration |
-| No drag-drop in Kanban | Yes | Add drag-drop | Keeps UI read-only, simpler, matches Graph |
-| OKLCH colors | Yes | Hex | Better perceptual uniformity, future-proof |
-| Dark mode only | Yes | Theme toggle | Industrial aesthetic is dark; defer light mode |
+| Decision               | Choice | Alternative      | Why                                            |
+| ---------------------- | ------ | ---------------- | ---------------------------------------------- |
+| Fully monospace        | Yes    | Mixed typography | Stronger industrial identity                   |
+| Zustand for UI state   | Yes    | Context only     | Cleaner API, devtools, persist option          |
+| tailwind-variants      | Yes    | cva              | Better Tailwind integration                    |
+| No drag-drop in Kanban | Yes    | Add drag-drop    | Keeps UI read-only, simpler, matches Graph     |
+| OKLCH colors           | Yes    | Hex              | Better perceptual uniformity, future-proof     |
+| Dark mode only         | Yes    | Theme toggle     | Industrial aesthetic is dark; defer light mode |
 
 ---
 
 ## Risks & Mitigations
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|
-| Graph perf with 100+ nodes | Medium | High | Keep virtualization, profile early, test with synthetic data |
-| Keyboard conflicts | Low | Medium | Use unmodified keys only in focused state, document clearly |
-| Scope creep | Medium | High | Explicit scope ceiling, defer command palette to v2 |
-| Design inconsistency mid-migration | Medium | Low | Complete D1-D2 first, systematic rollout |
+| Risk                               | Likelihood | Impact | Mitigation                                                   |
+| ---------------------------------- | ---------- | ------ | ------------------------------------------------------------ |
+| Graph perf with 100+ nodes         | Medium     | High   | Keep virtualization, profile early, test with synthetic data |
+| Keyboard conflicts                 | Low        | Medium | Use unmodified keys only in focused state, document clearly  |
+| Scope creep                        | Medium     | High   | Explicit scope ceiling, defer command palette to v2          |
+| Design inconsistency mid-migration | Medium     | Low    | Complete D1-D2 first, systematic rollout                     |
 
 ---
 
@@ -362,12 +371,12 @@ Week 3:
 
 ## Open Questions (Resolved)
 
-| Question | Resolution |
-|----------|------------|
-| Sound on completion? | Deferred - not core |
-| Dark/light toggle? | Dark only initially |
-| Responsive design? | Out of scope - desktop only |
-| Command palette? | Defer to v2 |
+| Question             | Resolution                  |
+| -------------------- | --------------------------- |
+| Sound on completion? | Deferred - not core         |
+| Dark/light toggle?   | Dark only initially         |
+| Responsive design?   | Out of scope - desktop only |
+| Command palette?     | Defer to v2                 |
 
 ---
 
@@ -375,6 +384,7 @@ Week 3:
 
 - Inspiration: `docs/inspiration/01-amp-task-ui.png` (task graph layout)
 - Inspiration: `docs/inspiration/02-cloudflare-workflows.png` (step history)
-- Inspiration: `docs/inspiration/04-aesthetic-02.png`, `05`, `10` (industrial aesthetic)
+- Inspiration: `docs/inspiration/04-aesthetic-02.png`, `05`, `10` (industrial
+  aesthetic)
 - Skills: `frontend-design`, `vercel-react-best-practices`
 - Current UI: `ui/src/client/`

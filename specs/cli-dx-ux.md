@@ -1,13 +1,14 @@
 # CLI DX/UX Improvements
 
-**Status:** Ready for implementation  
-**Effort:** L (1-2 days)  
-**Author:** spec-planner  
+**Status:** Ready for implementation\
+**Effort:** L (1-2 days)\
+**Author:** spec-planner\
 **Date:** 2026-02-01
 
 ## Problem
 
 Overseer CLI (`os`) has poor discoverability and visual feedback:
+
 1. No shell completions - must remember commands/flags
 2. No color - output hard to scan, status buried
 3. Flat task list - hierarchy invisible, relationships unclear
@@ -40,6 +41,7 @@ os completions <shell>
 Where `<shell>` is `bash | zsh | fish`.
 
 Outputs shell script to stdout. User sources it:
+
 ```bash
 # ~/.zshrc
 eval "$(os completions zsh)"
@@ -52,18 +54,20 @@ eval "$(os completions zsh)"
 Add `owo-colors` crate. Create `output.rs` module with `Printer` struct.
 
 **Color scheme:**
-| Element | Style |
-|---------|-------|
-| Task ID | cyan, dim |
-| Completed `✓` | green |
-| Pending `○` | yellow |
-| Blocked `⊘` | red |
-| Priority 1-2 | red/yellow |
-| Milestone | bold |
-| Tree lines | dim |
-| Errors | red, bold |
+
+| Element       | Style      |
+| ------------- | ---------- |
+| Task ID       | cyan, dim  |
+| Completed `✓` | green      |
+| Pending `○`   | yellow     |
+| Blocked `⊘`   | red        |
+| Priority 1-2  | red/yellow |
+| Milestone     | bold       |
+| Tree lines    | dim        |
+| Errors        | red, bold  |
 
 **Behavior:**
+
 - Auto-detect TTY
 - Respect `NO_COLOR` env
 - Add `--no-color` global flag
@@ -88,6 +92,7 @@ Add `--flat` flag for old behavior.
 #### D3b: Type Filter Flags
 
 New flags for `os task list`:
+
 - `--milestones` / `-m` — depth=0 only
 - `--tasks` / `-t` — depth=1 only
 - `--subtasks` / `-s` — depth=2 only
@@ -95,6 +100,7 @@ New flags for `os task list`:
 #### D3c: Status Indicators
 
 Visual state in tree output:
+
 - `✓` completed (green)
 - `○` pending/ready (yellow)
 - `⊘` blocked (red)
@@ -102,20 +108,21 @@ Visual state in tree output:
 #### D3d: Progress Summary
 
 Footer after list:
+
 ```
 3/7 complete | 2 blocked | 2 ready
 ```
 
 ## Deliverables
 
-| # | Deliverable | Effort | Depends On |
-|---|-------------|--------|------------|
-| D1 | `os completions <shell>` subcommand | S | - |
-| D2 | Styled output + `Printer` refactor | M | - |
-| D3a | Tree view as default list | M | D2 |
-| D3b | Type filter flags | S | - |
-| D3c | Status indicators in tree | S | D2, D3a |
-| D3d | Progress summary footer | S | D3a |
+| #   | Deliverable                         | Effort | Depends On |
+| --- | ----------------------------------- | ------ | ---------- |
+| D1  | `os completions <shell>` subcommand | S      | -          |
+| D2  | Styled output + `Printer` refactor  | M      | -          |
+| D3a | Tree view as default list           | M      | D2         |
+| D3b | Type filter flags                   | S      | -          |
+| D3c | Status indicators in tree           | S      | D2, D3a    |
+| D3d | Progress summary footer             | S      | D3a        |
 
 **Suggested order:** D1 → D2 → D3b → D3a → D3c → D3d
 
@@ -137,17 +144,19 @@ D1, D2, D3b are independent (can parallelize).
 
 ### Tree Rendering
 
-Existing `print_tree()` in `main.rs:474-493` already uses unicode box chars. Enhance with:
+Existing `print_tree()` in `main.rs:474-493` already uses unicode box chars.
+Enhance with:
+
 - Color via `Printer`
 - Status symbols
 - Milestone indicator
 
 ## Risks
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|
-| `owo-colors` API mismatch | Low | S | Fallback to `colored` crate |
-| Tree slow for large counts | Low | S | Lazy render, add `--limit` |
+| Risk                       | Likelihood | Impact | Mitigation                  |
+| -------------------------- | ---------- | ------ | --------------------------- |
+| `owo-colors` API mismatch  | Low        | S      | Fallback to `colored` crate |
+| Tree slow for large counts | Low        | S      | Lazy render, add `--limit`  |
 
 ## Acceptance Criteria
 

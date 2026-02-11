@@ -1,11 +1,13 @@
 # Verification Guide
 
-Before marking any task complete, you MUST verify your work. Verification separates "I think it's done" from "it's actually done."
+Before marking any task complete, you MUST verify your work. Verification
+separates "I think it's done" from "it's actually done."
 
 ## The Verification Process
 
 1. **Re-read the task context**: What did you originally commit to do?
-2. **Check acceptance criteria**: Does your implementation satisfy the "Done when" conditions?
+2. **Check acceptance criteria**: Does your implementation satisfy the "Done
+   when" conditions?
 3. **Run relevant tests**: Execute the test suite and document results
 4. **Test manually**: Actually try the feature/change yourself
 5. **Compare with requirements**: Does what you built match what was asked?
@@ -29,14 +31,14 @@ Before marking any task complete, you MUST verify your work. Verification separa
 
 ## Verification by Task Type
 
-| Task Type | How to Verify |
-|-----------|---------------|
-| Code changes | Run full test suite, document passing count |
-| New features | Run tests + manual testing of functionality |
-| Configuration | Test the config works (run commands, check workflows) |
+| Task Type     | How to Verify                                           |
+| ------------- | ------------------------------------------------------- |
+| Code changes  | Run full test suite, document passing count             |
+| New features  | Run tests + manual testing of functionality             |
+| Configuration | Test the config works (run commands, check workflows)   |
 | Documentation | Verify examples work, links resolve, formatting renders |
-| Refactoring | Confirm tests still pass, no behavior changes |
-| Bug fixes | Reproduce bug first, verify fix, add regression test |
+| Refactoring   | Confirm tests still pass, no behavior changes           |
+| Bug fixes     | Reproduce bug first, verify fix, add regression test    |
 
 ## Cross-Reference Checklist
 
@@ -58,7 +60,9 @@ Before marking complete, verify all applicable items:
 ### Code Implementation
 
 ```javascript
-await tasks.complete(taskId, `Implemented JWT middleware:
+await tasks.complete(
+	taskId,
+	`Implemented JWT middleware:
 
 Implementation:
 - Created src/middleware/verify-token.ts
@@ -69,13 +73,16 @@ Verification:
 - All 69 tests passing (4 new tests for edge cases)
 - Manually tested with valid token: Access granted
 - Manually tested with expired token: 401 with 'token_expired'
-- Manually tested with invalid signature: 401 with 'invalid_token'`);
+- Manually tested with invalid signature: 401 with 'invalid_token'`,
+);
 ```
 
 ### Configuration/Infrastructure
 
 ```javascript
-await tasks.complete(taskId, `Added GitHub Actions workflow for CI:
+await tasks.complete(
+	taskId,
+	`Added GitHub Actions workflow for CI:
 
 Implementation:
 - Created .github/workflows/ci.yml
@@ -85,13 +92,16 @@ Verification:
 - Pushed to test branch, opened PR #123
 - Workflow triggered automatically
 - All jobs passed (lint: 0 errors, test: 69/69, build: success)
-- Total run time: 2m 34s`);
+- Total run time: 2m 34s`,
+);
 ```
 
 ### Refactoring
 
 ```javascript
-await tasks.complete(taskId, `Refactored storage to one file per task:
+await tasks.complete(
+	taskId,
+	`Refactored storage to one file per task:
 
 Implementation:
 - Split tasks.json into .overseer/tasks/{id}.json files
@@ -102,13 +112,16 @@ Verification:
 - All 60 tests passing (including 8 storage tests)
 - Build successful
 - Manually tested migration: old -> new format works
-- Confirmed git diff shows only changed tasks`);
+- Confirmed git diff shows only changed tasks`,
+);
 ```
 
 ### Bug Fix
 
 ```javascript
-await tasks.complete(taskId, `Fixed login validation accepting usernames with spaces:
+await tasks.complete(
+	taskId,
+	`Fixed login validation accepting usernames with spaces:
 
 Root cause:
 - Validation regex didn't account for leading/trailing spaces
@@ -123,13 +136,16 @@ Verification:
   - " admin" -> rejected (leading space)
   - "admin " -> rejected (trailing space)
   - "ad min" -> rejected (internal space)
-  - "admin" -> accepted`);
+  - "admin" -> accepted`,
+);
 ```
 
 ### Documentation
 
 ```javascript
-await tasks.complete(taskId, `Updated API documentation for auth endpoints:
+await tasks.complete(
+	taskId,
+	`Updated API documentation for auth endpoints:
 
 Implementation:
 - Added docs for POST /auth/login
@@ -141,17 +157,18 @@ Verification:
 - All code examples tested and working
 - Links verified (no 404s)
 - Rendered in local preview - formatting correct
-- Spell-checked content`);
+- Spell-checked content`,
+);
 ```
 
 ## Common Verification Mistakes
 
-| Mistake | Better Approach |
-|---------|-----------------|
-| "Tests pass" | "All 42 tests passing" (include count) |
-| "Manually tested" | "Manually tested X, Y, Z scenarios" (be specific) |
-| "Works" | "Works: [evidence]" (show proof) |
-| "Fixed" | "Fixed: [root cause] -> [solution] -> [verification]" |
+| Mistake           | Better Approach                                       |
+| ----------------- | ----------------------------------------------------- |
+| "Tests pass"      | "All 42 tests passing" (include count)                |
+| "Manually tested" | "Manually tested X, Y, Z scenarios" (be specific)     |
+| "Works"           | "Works: [evidence]" (show proof)                      |
+| "Fixed"           | "Fixed: [root cause] -> [solution] -> [verification]" |
 
 ## When Verification Fails
 
@@ -165,16 +182,18 @@ If verification reveals issues:
 ```javascript
 // Update context with failure notes
 await tasks.update(taskId, {
-  context: task.context + `
+	context: task.context + `
 
 Verification attempt 1 (failed):
 - Tests: 41/42 passing
 - Failing: test_token_refresh - timeout issue
-- Need to investigate async handling`
+- Need to investigate async handling`,
 });
 
 // After fixing
-await tasks.complete(taskId, `Implemented token refresh:
+await tasks.complete(
+	taskId,
+	`Implemented token refresh:
 
 Implementation:
 - Added refresh endpoint
@@ -182,5 +201,6 @@ Implementation:
 
 Verification:
 - All 42 tests passing (fixed timeout issue)
-- Manual testing: refresh works within 30s window`);
+- Manual testing: refresh works within 30s window`,
+);
 ```

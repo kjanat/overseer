@@ -4,13 +4,13 @@ Command handlers for `os` CLI - wire clap to core services.
 
 ## FILES
 
-| File | Lines | Purpose |
-|------|-------|---------|
-| `task.rs` | ~770 | Task CRUD, lifecycle, queries (tree, search, progress) |
-| `learning.rs` | - | Learning CRUD |
-| `vcs.rs` | - | VCS operations (detect, status, log, diff, commit) |
-| `data.rs` | - | Import/export tasks + learnings (JSON) |
-| `mod.rs` | - | Re-exports all commands |
+| File          | Lines | Purpose                                                |
+| ------------- | ----- | ------------------------------------------------------ |
+| `task.rs`     | ~770  | Task CRUD, lifecycle, queries (tree, search, progress) |
+| `learning.rs` | -     | Learning CRUD                                          |
+| `vcs.rs`      | -     | VCS operations (detect, status, log, diff, commit)     |
+| `data.rs`     | -     | Import/export tasks + learnings (JSON)                 |
+| `mod.rs`      | -     | Re-exports all commands                                |
 
 ## PATTERNS
 
@@ -27,6 +27,7 @@ pub fn handle(conn: &Connection, cmd: FooCommand) -> Result<FooResult>
 ### Command Cloning (main.rs:147-234)
 
 Explicit field clones (no #[derive(Clone)] on Args structs):
+
 ```rust
 fn clone_task_cmd(cmd: &TaskCommand) -> TaskCommand {
     match cmd {
@@ -65,6 +66,7 @@ pub enum TaskResult {
 
 ## KEY FUNCTIONS (task.rs)
 
-- `build_tree_for_task()` / `build_all_trees()` / `build_tree_recursive()`: Hierarchy construction
+- `build_tree_for_task()` / `build_all_trees()` / `build_tree_recursive()`:
+  Hierarchy construction
 - `search_tasks()`: Substring matching across description/context/result
 - `calculate_progress()` / `get_descendants()`: Progress aggregate counts

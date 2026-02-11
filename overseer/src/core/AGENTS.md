@@ -1,29 +1,33 @@
 # CORE BUSINESS LOGIC
 
-Business logic layer - orchestrates task operations, validation, context assembly, learning inheritance.
+Business logic layer - orchestrates task operations, validation, context
+assembly, learning inheritance.
 
 ## FILES
 
-| File | Lines | Purpose |
-|------|-------|---------|
-| `mod.rs` | - | Module exports |
-| `task_service.rs` | 1471 | Task CRUD, validation, cycle detection, depth enforcement |
-| `workflow_service.rs` | 1208 | Task lifecycle: start/complete with VCS |
-| `context.rs` | 481 | Context chain assembly, learning aggregation |
+| File                  | Lines | Purpose                                                   |
+| --------------------- | ----- | --------------------------------------------------------- |
+| `mod.rs`              | -     | Module exports                                            |
+| `task_service.rs`     | 1471  | Task CRUD, validation, cycle detection, depth enforcement |
+| `workflow_service.rs` | 1208  | Task lifecycle: start/complete with VCS                   |
+| `context.rs`          | 481   | Context chain assembly, learning aggregation              |
 
 ## KEY ALGORITHMS
 
 ### DFS Cycle Detection (task_service.rs:267-301)
 
 **Parent cycles**: Linear traversal up parent chain.
+
 ```
 current -> parent -> parent.parent -> ... -> task_id? (cycle!)
 ```
 
 **Blocker cycles**: DFS with visited set.
+
 ```
 new_blocker -> its blockers -> their blockers -> ... -> task_id? (cycle!)
 ```
+
 - HashSet for O(1) visited check
 - Stack-based iteration (no recursion)
 - Early termination on cycle found
@@ -37,6 +41,7 @@ new_blocker -> its blockers -> their blockers -> ... -> task_id? (cycle!)
 ### Context Chain Assembly (context.rs:57-83)
 
 **Depth-based inheritance**:
+
 - **Depth 0** (Milestone): own only
 - **Depth 1** (Task): own + milestone (parent)
 - **Depth 2** (Subtask): own + parent + milestone (grandparent)
@@ -44,6 +49,7 @@ new_blocker -> its blockers -> their blockers -> ... -> task_id? (cycle!)
 ### Learnings Bubbling (workflow_service.rs)
 
 On task completion with learnings:
+
 1. Learnings attached to completed task
 2. Copy to immediate parent (preserves `source_task_id`)
 3. Siblings see learnings after code merges to common ancestor
@@ -51,26 +57,33 @@ On task completion with learnings:
 ## PATTERNS
 
 ### Service Layer
+
 - `TaskService<'a>` wraps all business logic
 - `TaskWorkflowService<'a>` handles VCS-integrated lifecycle
 - DB connection passed by reference (&Connection)
 - All ops return `Result<T, OsError>`
 
 ### Validation Order
+
 1. Existence checks (parent, blockers)
 2. Cycle detection (more specific error)
 3. Depth limit enforcement
 4. DB mutation
 
 ### VCS Integration (workflow_service.rs)
+
 - `start()`: VCS required - creates bookmark/branch, records start commit
-- `complete_with_learnings()`: VCS required - commits changes (NothingToCommit = success), adds learnings, checkouts start_commit, deletes bookmark/branch (best-effort)
-- `complete_milestone_with_learnings()`: Same + deletes ALL descendant bookmarks/branches recursively
+- `complete_with_learnings()`: VCS required - commits changes (NothingToCommit =
+  success), adds learnings, checkouts start_commit, deletes bookmark/branch
+  (best-effort)
+- `complete_milestone_with_learnings()`: Same + deletes ALL descendant
+  bookmarks/branches recursively
 - Transaction order: VCS ops first, then DB state update
 - **Unified stacking semantics**: Both jj and git get identical behavior
   - On complete: checkout `start_commit` → delete bookmark/branch
   - Solves git's "cannot delete checked-out branch" error
-- Bookmark cleanup: best-effort deletion, logs warning on failure, clears DB field on success
+- Bookmark cleanup: best-effort deletion, logs warning on failure, clears DB
+  field on success
 - Errors: `NotARepository` (no jj/git), `DirtyWorkingCopy` (uncommitted changes)
 - WorkflowService.new() takes `Box<dyn VcsBackend>` (not Option)
 
@@ -83,6 +96,9 @@ On task completion with learnings:
 5. Learnings bubble to immediate parent only (preserves source_task_id)
 6. VCS required for start/complete - CRUD ops work without VCS
 7. VCS cleanup on delete is best-effort (logs warning, doesn't fail)
-8. VCS bookmark/branch lifecycle: created on start, deleted on complete (unified for jj & git), DB field cleared on success
-9. Milestone completion cleans ALL descendant bookmarks/branches (depth-1 and depth-2) PLUS milestone's own bookmark
-10. Blocker edges preserved on completion (not removed) - readiness computed from blocker's completed state
+8. VCS bookmark/branch lifecycle: created on start, deleted on complete (unified
+   for jj & git), DB field cleared on success
+9. Milestone completion cleans ALL descendant bookmarks/branches (depth-1 and
+   depth-2) PLUS milestone's own bookmark
+10. Blocker edges preserved on completion (not removed) - readiness computed
+    from blocker's completed state

@@ -1,12 +1,16 @@
 # MCP Agent Guide
 
-Overseer MCP server provides a single `execute` tool using the **codemode pattern**: agents write JavaScript that executes server-side, only results return.
+Overseer MCP server provides a single `execute` tool using the **codemode
+pattern**: agents write JavaScript that executes server-side, only results
+return.
 
 ## Why Codemode?
 
-Traditional MCP tools require one tool call per operation. Codemode lets agents compose complex workflows in a single execution:
+Traditional MCP tools require one tool call per operation. Codemode lets agents
+compose complex workflows in a single execution:
 
 **Traditional (multiple tool calls):**
+
 ```
 1. create_task(...)
 2. add_learning(...)
@@ -14,6 +18,7 @@ Traditional MCP tools require one tool call per operation. Codemode lets agents 
 ```
 
 **Codemode (single execution):**
+
 ```javascript
 const task = await tasks.create({...});
 await tasks.start(task.id);
@@ -23,17 +28,19 @@ return task;
 ```
 
 **Benefits:**
+
 - Fewer round trips
 - Agents handle TypeScript APIs better than tool schemas
 - Compose operations naturally with JS control flow
 
 ## The `execute` Tool
 
-Single tool that runs JavaScript in VM sandbox with `tasks` and `learnings` APIs.
+Single tool that runs JavaScript in VM sandbox with `tasks` and `learnings`
+APIs.
 
-**Input:** `code` parameter (JavaScript string)  
-**Output:** Return value from code execution  
-**Timeout:** 30 seconds  
+**Input:** `code` parameter (JavaScript string)\
+**Output:** Return value from code execution\
+**Timeout:** 30 seconds\
 **Truncation:** Outputs >50,000 chars truncated with preview
 
 ## Type Definitions
@@ -42,64 +49,64 @@ Single tool that runs JavaScript in VM sandbox with `tasks` and `learnings` APIs
 // Task (from list/create/update/start/complete/reopen)
 // Note: Does NOT include context chain or inherited learnings
 interface Task {
-  id: string;                   // ULID (task_01JQAZ...)
-  parentId: string | null;
-  description: string;
-  priority: number;             // 0-2 (p0=highest, p1=default, p2=lowest)
-  completed: boolean;
-  completedAt: string | null;
-  startedAt: string | null;
-  createdAt: string;            // ISO 8601
-  updatedAt: string;
-  result: string | null;        // Completion notes
-  commitSha: string | null;     // Auto-populated on complete
-  depth: number;                // 0=milestone, 1=task, 2=subtask
-  blockedBy?: string[];         // Blocking task IDs (omitted if empty)
-  blocks?: string[];            // Tasks this blocks (omitted if empty)
-  bookmark?: string;            // VCS bookmark name (if started)
-  startCommit?: string;         // Commit SHA at start
-  effectivelyBlocked: boolean;  // True if task OR ancestor has incomplete blockers
+	id: string; // ULID (task_01JQAZ...)
+	parentId: string | null;
+	description: string;
+	priority: number; // 0-2 (p0=highest, p1=default, p2=lowest)
+	completed: boolean;
+	completedAt: string | null;
+	startedAt: string | null;
+	createdAt: string; // ISO 8601
+	updatedAt: string;
+	result: string | null; // Completion notes
+	commitSha: string | null; // Auto-populated on complete
+	depth: number; // 0=milestone, 1=task, 2=subtask
+	blockedBy?: string[]; // Blocking task IDs (omitted if empty)
+	blocks?: string[]; // Tasks this blocks (omitted if empty)
+	bookmark?: string; // VCS bookmark name (if started)
+	startCommit?: string; // Commit SHA at start
+	effectivelyBlocked: boolean; // True if task OR ancestor has incomplete blockers
 }
 
 // TaskTree (from tree)
 interface TaskTree {
-  task: Task;
-  children: TaskTree[];
+	task: Task;
+	children: TaskTree[];
 }
 
 // TaskProgress (from progress)
 interface TaskProgress {
-  total: number;
-  completed: number;
-  ready: number;     // !completed && !effectivelyBlocked
-  blocked: number;   // !completed && effectivelyBlocked
+	total: number;
+	completed: number;
+	ready: number; // !completed && !effectivelyBlocked
+	blocked: number; // !completed && effectivelyBlocked
 }
 
 // TaskType alias for depth filter
-type TaskType = "milestone" | "task" | "subtask";
+type TaskType = 'milestone' | 'task' | 'subtask';
 
 // TaskWithContext (from get/nextReady)
 // Extends Task with context chain and inherited learnings
 interface TaskWithContext extends Task {
-  context: {                    // Inherited context chain
-    own: string;
-    parent?: string;            // If depth > 0
-    milestone?: string;         // If depth > 1
-  };
-  learnings: {                  // Inherited learnings
-    own: Learning[];            // Learnings attached to this task
-    parent: Learning[];         // Parent's learnings (if depth > 0)
-    milestone: Learning[];      // Milestone's learnings (if depth > 1)
-  };
+	context: { // Inherited context chain
+		own: string;
+		parent?: string; // If depth > 0
+		milestone?: string; // If depth > 1
+	};
+	learnings: { // Inherited learnings
+		own: Learning[]; // Learnings attached to this task
+		parent: Learning[]; // Parent's learnings (if depth > 0)
+		milestone: Learning[]; // Milestone's learnings (if depth > 1)
+	};
 }
 
 // Learning
 interface Learning {
-  id: string;                   // ULID (lrn_01JQAZ...)
-  taskId: string;
-  content: string;
-  sourceTaskId: string | null;
-  createdAt: string;
+	id: string; // ULID (lrn_01JQAZ...)
+	taskId: string;
+	content: string;
+	sourceTaskId: string | null;
+	createdAt: string;
 }
 ```
 
@@ -180,23 +187,23 @@ learnings.list(taskId: string): Promise<Learning[]>
 ```javascript
 // Create milestone
 const milestone = await tasks.create({
-  description: "Implement user authentication",
-  context: "JWT-based auth with refresh tokens, bcrypt for passwords",
-  priority: 0  // p0 = highest
+	description: 'Implement user authentication',
+	context: 'JWT-based auth with refresh tokens, bcrypt for passwords',
+	priority: 0, // p0 = highest
 });
 
 // Create subtasks
 const loginTask = await tasks.create({
-  description: "Add login endpoint",
-  parentId: milestone.id,
-  priority: 0  // p0 = highest
+	description: 'Add login endpoint',
+	parentId: milestone.id,
+	priority: 0, // p0 = highest
 });
 
 const signupTask = await tasks.create({
-  description: "Add signup endpoint", 
-  parentId: milestone.id,
-  priority: 1,  // p1 = default
-  blockedBy: [loginTask.id]  // Blocked until login done
+	description: 'Add signup endpoint',
+	parentId: milestone.id,
+	priority: 1, // p1 = default
+	blockedBy: [loginTask.id], // Blocked until login done
 });
 
 return { milestone, tasks: [loginTask, signupTask] };
@@ -209,7 +216,7 @@ return { milestone, tasks: [loginTask, signupTask] };
 const task = await tasks.nextReady();
 
 if (!task) {
-  return "No tasks ready";
+	return 'No tasks ready';
 }
 
 // Start task - if blocked, follows blockers to find startable work
@@ -223,8 +230,8 @@ await tasks.start(task.id);
 // Auto-bubbles up: if all siblings done and parent unblocked,
 // parent is auto-completed too
 await tasks.complete(task.id, {
-  result: "Login endpoint implemented with JWT tokens",
-  learnings: ["bcrypt rounds should be 12 for production"]
+	result: 'Login endpoint implemented with JWT tokens',
+	learnings: ['bcrypt rounds should be 12 for production'],
 });
 
 return task;
@@ -238,7 +245,7 @@ const subtask = await tasks.get(subtaskId);
 
 // subtask.context contains:
 // - own: subtask's context
-// - parent: parent task's context  
+// - parent: parent task's context
 // - milestone: root milestone's context
 
 // subtask.learnings contains:
@@ -246,37 +253,40 @@ const subtask = await tasks.get(subtaskId);
 // - parent: learnings from parent task
 // - milestone: learnings from root
 
-console.log("Milestone context:", subtask.context.milestone);
-console.log("Own learnings:", subtask.learnings.own);
-console.log("Parent learnings:", subtask.learnings.parent);
+console.log('Milestone context:', subtask.context.milestone);
+console.log('Own learnings:', subtask.learnings.own);
+console.log('Parent learnings:', subtask.learnings.parent);
 ```
 
 ### VCS Integration (Required for Workflow)
 
-VCS operations are integrated into task lifecycle - no manual VCS API calls needed:
+VCS operations are integrated into task lifecycle - no manual VCS API calls
+needed:
 
 ```javascript
 // Complete task - VCS required, commits changes
-await tasks.complete(task.id, { result: "Login endpoint complete" });
+await tasks.complete(task.id, { result: 'Login endpoint complete' });
 // -> Commits changes (NothingToCommit treated as success)
 // -> Stores commit SHA on task
 ```
 
-**VCS is required** for `start` and `complete`. Fails with `NotARepository` if no jj/git found, `DirtyWorkingCopy` if uncommitted changes. CRUD operations (create, list, get, etc.) work without VCS.
+**VCS is required** for `start` and `complete`. Fails with `NotARepository` if
+no jj/git found, `DirtyWorkingCopy` if uncommitted changes. CRUD operations
+(create, list, get, etc.) work without VCS.
 
 ### Error Handling
 
 ```javascript
 try {
-  const task = await tasks.get("task_01JQAZ...");
-  await tasks.complete(task.id);
+	const task = await tasks.get('task_01JQAZ...');
+	await tasks.complete(task.id);
 } catch (err) {
-  if (err.message.includes("pending children")) {
-    // Task has incomplete subtasks
-    const children = await tasks.list({ parentId: task.id, completed: false });
-    return `Cannot complete: ${children.length} pending children`;
-  }
-  throw err;
+	if (err.message.includes('pending children')) {
+		// Task has incomplete subtasks
+		const children = await tasks.list({ parentId: task.id, completed: false });
+		return `Cannot complete: ${children.length} pending children`;
+	}
+	throw err;
 }
 ```
 
@@ -288,11 +298,11 @@ const readyTasks = await tasks.list({ ready: true });
 
 const completed = [];
 for (const task of readyTasks) {
-  if (task.description.includes("test")) {
-    await tasks.start(task.id);
-    await tasks.complete(task.id, { result: "Tests passing" });
-    completed.push(task);
-  }
+	if (task.description.includes('test')) {
+		await tasks.start(task.id);
+		await tasks.complete(task.id, { result: 'Tests passing' });
+		completed.push(task);
+	}
 }
 
 return { completed: completed.length, tasks: completed };
@@ -306,10 +316,10 @@ const done = await tasks.list({ completed: true });
 
 // Get only milestones (two equivalent ways)
 const milestones = await tasks.list({ depth: 0 });
-const milestones2 = await tasks.list({ type: "milestone" });
+const milestones2 = await tasks.list({ type: 'milestone' });
 
 // Search tasks by text
-const authTasks = await tasks.search("authentication");
+const authTasks = await tasks.search('authentication');
 
 // Get progress summary (much more efficient than counting manually)
 const progress = await tasks.progress(milestoneId);
@@ -347,8 +357,8 @@ Include learnings when completing tasks:
 ```javascript
 // ✅ Good - capture learnings on complete
 await tasks.complete(taskId, {
-  result: "Feature implemented",
-  learnings: ["bcrypt default rounds too low"]
+	result: 'Feature implemented',
+	learnings: ['bcrypt default rounds too low'],
 });
 
 // Note: Learnings are added via tasks.complete(), not a separate API
@@ -361,12 +371,12 @@ Explicit blockers prevent premature task start:
 ```javascript
 // ✅ Good - explicit dependency
 await tasks.create({
-  description: "Deploy to prod",
-  blockedBy: [testTaskId, reviewTaskId]
+	description: 'Deploy to prod',
+	blockedBy: [testTaskId, reviewTaskId],
 });
 
 // ❌ Bad - implicit ordering
-await tasks.create({ description: "Deploy to prod" });
+await tasks.create({ description: 'Deploy to prod' });
 // No guarantee tests/review done first
 ```
 
@@ -377,13 +387,13 @@ Return structured data for agent inspection:
 ```javascript
 // ✅ Good - return summary
 return {
-  created: milestone.id,
-  subtasks: tasks.length,
-  nextReady: tasks.find(t => !t.blockedBy)?.id
+	created: milestone.id,
+	subtasks: tasks.length,
+	nextReady: tasks.find(t => !t.blockedBy)?.id,
 };
 
 // ❌ Bad - unclear result
-return "Done";
+return 'Done';
 ```
 
 ## Common Patterns
@@ -392,22 +402,22 @@ return "Done";
 
 ```javascript
 const milestone = await tasks.create({
-  description: "User auth system",
-  context: "JWT + refresh tokens"
+	description: 'User auth system',
+	context: 'JWT + refresh tokens',
 });
 
 const subtasks = [
-  "Add login endpoint",
-  "Add signup endpoint", 
-  "Add token refresh",
-  "Add password reset"
+	'Add login endpoint',
+	'Add signup endpoint',
+	'Add token refresh',
+	'Add password reset',
 ];
 
 for (const desc of subtasks) {
-  await tasks.create({
-    description: desc,
-    parentId: milestone.id
-  });
+	await tasks.create({
+		description: desc,
+		parentId: milestone.id,
+	});
 }
 
 return await tasks.list({ parentId: milestone.id });
@@ -418,15 +428,15 @@ return await tasks.list({ parentId: milestone.id });
 ```javascript
 // Get next task with full context
 const task = await tasks.nextReady();
-if (!task) return "No ready tasks";
+if (!task) return 'No ready tasks';
 
 // Review context
-console.log("Milestone:", task.context.milestone);
-console.log("Parent:", task.context.parent);
-console.log("Task:", task.context.own);
+console.log('Milestone:', task.context.milestone);
+console.log('Parent:', task.context.parent);
+console.log('Task:', task.context.own);
 
 // Check inherited learnings
-console.log("Learnings:", task.learnings.parent);
+console.log('Learnings:', task.learnings.parent);
 
 // Start work (creates bookmark, records start commit)
 await tasks.start(task.id);
@@ -438,8 +448,8 @@ return task;
 ```javascript
 // Complete task - VCS required, commits changes
 const completed = await tasks.complete(taskId, {
-  result: "Feature X implemented and tested",
-  learnings: ["Key discovery during implementation"]
+	result: 'Feature X implemented and tested',
+	learnings: ['Key discovery during implementation'],
 });
 
 // completed.commitSha contains the commit SHA
@@ -455,12 +465,12 @@ const task = await tasks.get(taskId);
 
 // Check blockers
 const blockers = await tasks.list({
-  // Get blocker details by querying each blocked_by ID
+	// Get blocker details by querying each blocked_by ID
 });
 
 // Unblock if needed
 if (blockerCompleted) {
-  await tasks.unblock(taskId, blockerId);
+	await tasks.unblock(taskId, blockerId);
 }
 ```
 
@@ -469,8 +479,8 @@ if (blockerCompleted) {
 ```javascript
 // Error: "pending children"
 const children = await tasks.list({
-  parentId: taskId,
-  completed: false
+	parentId: taskId,
+	completed: false,
 });
 
 console.log(`${children.length} children still pending`);
@@ -483,7 +493,8 @@ console.log(`${children.length} children still pending`);
 - **Output:** 50,000 chars max (larger outputs truncated)
 - **No network:** Sandbox has no fetch/http access
 - **No filesystem:** Cannot read/write files directly
-- **VCS required for workflow:** `start` and `complete` require jj or git (fails with `NotARepository` error). CRUD operations work without VCS.
+- **VCS required for workflow:** `start` and `complete` require jj or git (fails
+  with `NotARepository` error). CRUD operations work without VCS.
 
 ## Data Export
 
@@ -494,7 +505,8 @@ For backup or version control of task data, use the CLI `data` command:
 os data export -o backup.json
 ```
 
-This is a CLI-only command (not available via MCP execute tool). See [CLI Reference](CLI.md#data-management) for details.
+This is a CLI-only command (not available via MCP execute tool). See
+[CLI Reference](CLI.md#data-management) for details.
 
 ## See Also
 

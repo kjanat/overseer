@@ -1,15 +1,18 @@
 # Overseer v2 Architecture
 
-**Status:** Draft  
+**Status:** Draft\
 **Date:** 2026-02-04
 
 ## Vision
 
-Overseer evolves from a task management CLI into a **local code review and agent orchestration platform**. Think: GitHub PR reviews + Linear task management + agent harness broker, all local-first.
+Overseer evolves from a task management CLI into a **local code review and agent
+orchestration platform**. Think: GitHub PR reviews + Linear task management +
+agent harness broker, all local-first.
 
 ## Design Principles
 
-1. **Stripe SDK-style API** - `overseer.tasks.create()`, not heavy DDD abstractions
+1. **Stripe SDK-style API** - `overseer.tasks.create()`, not heavy DDD
+   abstractions
 2. **Single Rust binary** - Boa JS engine for codemode, no Node.js dependency
 3. **Multi-repo/multi-project** - Manage tasks across repositories
 4. **Stacked diffs** - Each task has persistent VCS artifacts for review
@@ -22,9 +25,10 @@ Overseer evolves from a task management CLI into a **local code review and agent
 
 ### Single Binary, Multiple Modes
 
-Overseer ships as **one Rust binary** (`os`) with multiple operational modes. No separate daemon binary needed.
+Overseer ships as **one Rust binary** (`os`) with multiple operational modes. No
+separate daemon binary needed.
 
-```
+```sh
 os <command>      # Fast CLI, works standalone (direct SDK calls)
 os serve          # Starts server (foreground, daemon-capable)
 os mcp            # MCP server mode (Boa JS executor)
@@ -32,12 +36,12 @@ os mcp            # MCP server mode (Boa JS executor)
 
 ### Why Not a Separate Daemon?
 
-| Separate `overseerd` | Single binary with modes |
-|----------------------|--------------------------|
-| Version skew risk | Always in sync |
-| Extra packaging | One artifact |
+| Separate `overseerd`          | Single binary with modes  |
+| ----------------------------- | ------------------------- |
+| Version skew risk             | Always in sync            |
+| Extra packaging               | One artifact              |
 | Process management complexity | `os serve` is just a mode |
-| User must install service | Works immediately |
+| User must install service     | Works immediately         |
 
 ### Architecture Diagram
 
@@ -73,12 +77,12 @@ os mcp            # MCP server mode (Boa JS executor)
 
 ### Client Connectivity
 
-| Client | Connection Strategy |
-|--------|---------------------|
-| **Web UI** | HTTP + SSE/WS to `os serve` |
-| **Tauri desktop** | Sidecar `os serve`, talk HTTP/WS |
-| **TUI** | HTTP/WS to `os serve` (or standalone CLI) |
-| **MCP/codemode** | In-process Boa inside `os serve` or `os mcp` |
+| Client            | Connection Strategy                          |
+| ----------------- | -------------------------------------------- |
+| **Web UI**        | HTTP + SSE/WS to `os serve`                  |
+| **Tauri desktop** | Sidecar `os serve`, talk HTTP/WS             |
+| **TUI**           | HTTP/WS to `os serve` (or standalone CLI)    |
+| **MCP/codemode**  | In-process Boa inside `os serve` or `os mcp` |
 
 ### SQLite Concurrency Strategy
 
@@ -86,11 +90,13 @@ os mcp            # MCP server mode (Boa JS executor)
 - **busy_timeout** set for write contention
 - CLI works standalone (direct SQLite access)
 - When `os serve` running, CLI can optionally route mutations through server
-- Server as single writer → no contention, events always captured in-memory pub/sub
+- Server as single writer → no contention, events always captured in-memory
+  pub/sub
 
 ### Serve Mode Features
 
 `os serve` provides:
+
 - **REST API** (axum) - Task CRUD, reviews, learnings
 - **SSE/WebSocket** - Real-time event streaming to UI
 - **Relay WebSocket** - Agent harness broker
@@ -98,15 +104,19 @@ os mcp            # MCP server mode (Boa JS executor)
 
 ### CLI Behavior
 
-- **Default:** `os task ...` runs in-process via Core SDK (fast, no daemon needed)
-- **Optional:** If `os serve` running, CLI can route through server for consistency
-- **Required:** `os events tail --follow` needs `os serve` (or starts temporary server)
+- **Default:** `os task ...` runs in-process via Core SDK (fast, no daemon
+  needed)
+- **Optional:** If `os serve` running, CLI can route through server for
+  consistency
+- **Required:** `os events tail --follow` needs `os serve` (or starts temporary
+  server)
 
 ### Daemonization Strategy
 
 **Phase 1 (now):** `os serve` runs foreground, user manages with tmux/screen/&
 
 **Phase 2 (later, if needed):** Add `os install-service` for:
+
 - macOS: launchd user agent
 - Linux: systemd user service
 - Only if users demand always-on behavior
@@ -119,14 +129,14 @@ os mcp            # MCP server mode (Boa JS executor)
 
 ```rust
 // overseer/src/lib.rs
-pub mod tasks;      // Task CRUD + lifecycle
-pub mod learnings;  // Learning management
-pub mod reviews;    // Code review workflow
-pub mod repos;      // Multi-repo management
-pub mod harnesses;  // Agent harness broker
-pub mod events;     // Event bus + subscriptions
-pub mod vcs;        // VCS operations (internal)
-pub mod db;         // Persistence (internal)
+pub mod db;
+pub mod events; // Event bus + subscriptions
+pub mod harnesses; // Agent harness broker
+pub mod learnings; // Learning management
+pub mod repos; // Multi-repo management
+pub mod reviews; // Code review workflow
+pub mod tasks; // Task CRUD + lifecycle
+pub mod vcs; // VCS operations (internal) // Persistence (internal)
 ```
 
 ### API Surface
@@ -190,13 +200,13 @@ impl Tasks {
     pub fn create(&self, input: CreateTaskInput) -> Result<Task> {
         // Validation
         self.validate_create(&input)?;
-        
+
         // Persist
         let task = self.db.tasks().insert(&input)?;
-        
+
         // Emit event
         self.events.emit(TaskEvent::Created { task: task.clone() });
-        
+
         Ok(task)
     }
 }
@@ -212,7 +222,8 @@ pub struct Overseer {
 }
 
 impl Overseer {
-    pub fn new(config: Config) -> Result<Self> { /* ... */ }
+    pub fn new(config: Config) -> Result<Self> { /* ... */
+    }
 }
 ```
 
@@ -274,7 +285,9 @@ Milestone (task_01ABC)
     └── head_rev: mno678
 ```
 
-**Key insight:** Each task's `base_rev` is its parent's `head_rev`. This creates a true stack where:
+**Key insight:** Each task's `base_rev` is its parent's `head_rev`. This creates
+a true stack where:
+
 - Diff for Task A1 = `def789..ghi012` (shows only A1's changes)
 - Diff for Task A = `abc456..def789` (shows only A's changes, not subtasks)
 
@@ -343,34 +356,34 @@ CREATE TABLE review_comments (
 ### Review Workflow
 
 ```
-                    ┌─────────────┐
-                    │   pending   │
-                    └──────┬──────┘
-                           │ start()
-                           ▼
-                   ┌─────────────┐
-         ┌─────────│ in_progress │◄────────┐
-         │         └──────┬──────┘         │
-         │                │ submit_for_review()
-         │                ▼                │
-         │         ┌─────────────┐         │
-         │         │   review    │─────────┤ reject()
-         │         └──────┬──────┘         │
-         │                │                │
-         │    ┌───────────┴───────────┐    │
-         │    │                       │    │
-         │    ▼                       ▼    │
-         │ approve()            request_changes()
-         │    │                       │    │
-         │    ▼                       └────┘
-         │ ┌─────────────┐
-         │ │  completed  │
-         │ └─────────────┘
-         │
-         └─ cancel()
-            ┌─────────────┐
-            │  cancelled  │
-            └─────────────┘
+           ┌─────────────┐
+           │   pending   │
+           └──────┬──────┘
+                  │ start()
+                  ▼
+          ┌─────────────┐
+┌─────────│ in_progress │◄────────┐
+│         └──────┬──────┘         │
+│                │ submit_for_review()
+│                ▼                │
+│         ┌─────────────┐         │
+│         │   review    │─────────┤ reject()
+│         └──────┬──────┘         │
+│                │                │
+│    ┌───────────┴───────────┐    │
+│    │                       │    │
+│    ▼                       ▼    │
+│ approve()            request_changes()
+│    │                       │    │
+│    ▼                       └────┘
+│ ┌─────────────┐
+│ │  completed  │
+│ └─────────────┘
+│
+└─ cancel()
+   ┌─────────────┐
+   │  cancelled  │
+   └─────────────┘
 ```
 
 ### Comment → Agent Feedback Loop
@@ -409,10 +422,10 @@ overseer::reviews::request_changes(task_id, pending_comments) {
 #[derive(Debug, Clone, Serialize)]
 pub struct Event {
     pub id: EventId,
-    pub seq: i64,                    // Monotonic, for tailing
+    pub seq: i64, // Monotonic, for tailing
     pub at: DateTime<Utc>,
     pub correlation_id: Option<String>,
-    pub source: EventSource,         // Cli | Mcp | Ui | Relay | Plugin
+    pub source: EventSource, // Cli | Mcp | Ui | Relay | Plugin
     pub body: EventBody,
 }
 
@@ -420,37 +433,94 @@ pub struct Event {
 #[serde(tag = "type", content = "data")]
 pub enum EventBody {
     // Task lifecycle
-    TaskCreated { task: Task },
-    TaskStarted { task: Task },
-    TaskSubmitted { task: Task, review_id: ReviewId },
-    TaskApproved { task: Task, review_id: ReviewId },
-    TaskRejected { task: Task, review_id: ReviewId, reason: Option<String> },
-    TaskCompleted { task: Task },
-    TaskCancelled { task: Task },
-    
+    TaskCreated {
+        task: Task,
+    },
+    TaskStarted {
+        task: Task,
+    },
+    TaskSubmitted {
+        task: Task,
+        review_id: ReviewId,
+    },
+    TaskApproved {
+        task: Task,
+        review_id: ReviewId,
+    },
+    TaskRejected {
+        task: Task,
+        review_id: ReviewId,
+        reason: Option<String>,
+    },
+    TaskCompleted {
+        task: Task,
+    },
+    TaskCancelled {
+        task: Task,
+    },
+
     // Reviews
-    ReviewCreated { review: Review },
-    CommentAdded { comment: Comment },
-    ChangesRequested { review: Review, comments: Vec<Comment> },
-    
+    ReviewCreated {
+        review: Review,
+    },
+    CommentAdded {
+        comment: Comment,
+    },
+    ChangesRequested {
+        review: Review,
+        comments: Vec<Comment>,
+    },
+
     // VCS
-    RefCreated { task_id: TaskId, ref_name: String, target: String },
-    Committed { task_id: TaskId, rev: String },
-    
+    RefCreated {
+        task_id: TaskId,
+        ref_name: String,
+        target: String,
+    },
+    Committed {
+        task_id: TaskId,
+        rev: String,
+    },
+
     // Harnesses
-    HarnessConnected { harness_id: String },
-    HarnessDisconnected { harness_id: String },
-    SessionStarted { session_id: String, task_id: TaskId, harness_id: String },
-    SessionProgress { session_id: String, message: String },
-    SessionCompleted { session_id: String },
-    
+    HarnessConnected {
+        harness_id: String,
+    },
+    HarnessDisconnected {
+        harness_id: String,
+    },
+    SessionStarted {
+        session_id: String,
+        task_id: TaskId,
+        harness_id: String,
+    },
+    SessionProgress {
+        session_id: String,
+        message: String,
+    },
+    SessionCompleted {
+        session_id: String,
+    },
+
     // Blockers
-    BlockerAdded { task_id: TaskId, blocker_id: TaskId },
-    BlockerRemoved { task_id: TaskId, blocker_id: TaskId },
-    
+    BlockerAdded {
+        task_id: TaskId,
+        blocker_id: TaskId,
+    },
+    BlockerRemoved {
+        task_id: TaskId,
+        blocker_id: TaskId,
+    },
+
     // Learnings
-    LearningAdded { learning: Learning },
-    LearningBubbled { from: TaskId, to: TaskId, learning_ids: Vec<LearningId> },
+    LearningAdded {
+        learning: Learning,
+    },
+    LearningBubbled {
+        from: TaskId,
+        to: TaskId,
+        learning_ids: Vec<LearningId>,
+    },
 }
 ```
 
@@ -629,6 +699,7 @@ pub enum RelayMessage {
 ## Migration Path
 
 ### Phase 1: Foundation (M)
+
 1. Fix jj commit ID bug (head_rev from commit result, not re-query)
 2. Add `repos` table + `repo_id` to tasks
 3. Add `task_vcs` table with `base_rev`/`head_rev`
@@ -636,36 +707,42 @@ pub enum RelayMessage {
 5. Enable SQLite WAL mode + busy_timeout
 
 ### Phase 2: Serve Mode (M-L)
+
 1. Add `os serve` command with axum
 2. Implement REST API for tasks/learnings
 3. Add SSE endpoint for event streaming
 4. Keep existing CLI working (direct SDK calls)
 
 ### Phase 3: Review Workflow (M-L)
+
 1. Add `reviews` and `review_comments` tables
 2. Add `requires_review` status
 3. Implement `submit_for_review()`, `approve()`, `reject()`
 4. Update task state machine
 
 ### Phase 4: SDK Refactor (L)
+
 1. Restructure into Stripe-style modules
 2. Extract business logic from services
 3. Add event emission throughout
 4. Keep CLI working during transition
 
 ### Phase 5: Boa Integration (L)
+
 1. Add boa-engine dependency
 2. Implement JsExecutor with task/review/learning APIs
 3. Wire into `os serve` and/or `os mcp` mode
 4. Remove Node.js host package
 
 ### Phase 6: Relay + Harnesses (XL)
+
 1. Implement relay WebSocket server (in `os serve`)
 2. Define harness protocol
 3. Build OpenCode/Claude Code providers
 4. Add review → agent feedback loop
 
 ### Phase 7: Multi-Client Support (L)
+
 1. Tauri desktop app (sidecar `os serve`)
 2. TUI client (ratatui or similar)
 3. Optional: `os install-service` for launchd/systemd

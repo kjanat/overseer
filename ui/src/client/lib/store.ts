@@ -9,13 +9,13 @@
  * Server state (tasks/learnings) stays in TanStack Query.
  */
 
-import { create } from "zustand";
-import type { TaskId } from "../../types.js";
+import { create } from 'zustand';
+import type { TaskId } from '../../types.js';
 
-export type ViewMode = "graph" | "kanban" | "list";
+export type ViewMode = 'graph' | 'kanban' | 'list';
 
 /** localStorage key for panel height persistence */
-const PANEL_HEIGHT_KEY = "ui.layout.v1.detailPanelHeight";
+const PANEL_HEIGHT_KEY = 'ui.layout.v1.detailPanelHeight';
 
 /** Default panel height in pixels */
 const DEFAULT_PANEL_HEIGHT = 320;
@@ -31,8 +31,8 @@ export const PANEL_HEIGHT_MAX_VH = 0.6;
  * Exported for use in drag handlers that need immediate clamping.
  */
 export function clampPanelHeight(height: number): number {
-  const maxPx = Math.floor(window.innerHeight * PANEL_HEIGHT_MAX_VH);
-  return Math.max(PANEL_HEIGHT_MIN, Math.min(height, maxPx));
+	const maxPx = Math.floor(window.innerHeight * PANEL_HEIGHT_MAX_VH);
+	return Math.max(PANEL_HEIGHT_MIN, Math.min(height, maxPx));
 }
 
 /**
@@ -40,19 +40,19 @@ export function clampPanelHeight(height: number): number {
  * Returns clamped value or default on error/invalid.
  */
 function loadPanelHeight(): number {
-  try {
-    const stored = localStorage.getItem(PANEL_HEIGHT_KEY);
-    if (stored === null) return DEFAULT_PANEL_HEIGHT;
+	try {
+		const stored = localStorage.getItem(PANEL_HEIGHT_KEY);
+		if (stored === null) return DEFAULT_PANEL_HEIGHT;
 
-    const value = Number.parseInt(stored, 10);
-    if (Number.isNaN(value)) return DEFAULT_PANEL_HEIGHT;
+		const value = Number.parseInt(stored, 10);
+		if (Number.isNaN(value)) return DEFAULT_PANEL_HEIGHT;
 
-    // Clamp to valid range (min 120px, max 60vh)
-    return clampPanelHeight(value);
-  } catch {
-    // Private browsing or storage disabled
-    return DEFAULT_PANEL_HEIGHT;
-  }
+		// Clamp to valid range (min 120px, max 60vh)
+		return clampPanelHeight(value);
+	} catch {
+		// Private browsing or storage disabled
+		return DEFAULT_PANEL_HEIGHT;
+	}
 }
 
 /**
@@ -60,82 +60,79 @@ function loadPanelHeight(): number {
  * Silently ignores errors (private browsing).
  */
 function savePanelHeight(height: number): void {
-  try {
-    localStorage.setItem(PANEL_HEIGHT_KEY, String(height));
-  } catch {
-    // Ignore - private browsing or quota exceeded
-  }
+	try {
+		localStorage.setItem(PANEL_HEIGHT_KEY, String(height));
+	} catch {
+		// Ignore - private browsing or quota exceeded
+	}
 }
 
 interface UIState {
-  /** Active view (graph default) */
-  viewMode: ViewMode;
-  /** Selected task for detail panel */
-  selectedTaskId: TaskId | null;
-  /** Focused task for keyboard navigation (separate from selection) */
-  focusedTaskId: TaskId | null;
-  /** Detail panel visibility */
-  detailPanelOpen: boolean;
-  /** Detail panel height in pixels (persisted) */
-  panelHeight: number;
+	/** Active view (graph default) */
+	viewMode: ViewMode;
+	/** Selected task for detail panel */
+	selectedTaskId: TaskId | null;
+	/** Focused task for keyboard navigation (separate from selection) */
+	focusedTaskId: TaskId | null;
+	/** Detail panel visibility */
+	detailPanelOpen: boolean;
+	/** Detail panel height in pixels (persisted) */
+	panelHeight: number;
 }
 
 interface UIActions {
-  setViewMode: (mode: ViewMode) => void;
-  setSelectedTaskId: (id: TaskId | null) => void;
-  setFocusedTaskId: (id: TaskId | null) => void;
-  toggleDetailPanel: () => void;
-  setDetailPanelOpen: (open: boolean) => void;
-  /** Set panel height and persist to localStorage */
-  setPanelHeight: (height: number) => void;
-  /** Clear selection/focus if task no longer exists */
-  clearIfMissing: (existingIds: Set<TaskId>) => void;
+	setViewMode: (mode: ViewMode) => void;
+	setSelectedTaskId: (id: TaskId | null) => void;
+	setFocusedTaskId: (id: TaskId | null) => void;
+	toggleDetailPanel: () => void;
+	setDetailPanelOpen: (open: boolean) => void;
+	/** Set panel height and persist to localStorage */
+	setPanelHeight: (height: number) => void;
+	/** Clear selection/focus if task no longer exists */
+	clearIfMissing: (existingIds: Set<TaskId>) => void;
 }
 
 export type UIStore = UIState & UIActions;
 
 export const useUIStore = create<UIStore>((set) => ({
-  // Initial state
-  viewMode: "graph",
-  selectedTaskId: null,
-  focusedTaskId: null,
-  detailPanelOpen: false,
-  panelHeight: loadPanelHeight(),
+	// Initial state
+	viewMode: 'graph',
+	selectedTaskId: null,
+	focusedTaskId: null,
+	detailPanelOpen: false,
+	panelHeight: loadPanelHeight(),
 
-  // Actions
-  setViewMode: (mode) => set({ viewMode: mode }),
+	// Actions
+	setViewMode: (mode) => set({ viewMode: mode }),
 
-  setSelectedTaskId: (id) =>
-    set((state) => ({
-      selectedTaskId: id,
-      // Auto-open detail panel when selecting; preserve state when clearing
-      detailPanelOpen: id !== null ? true : state.detailPanelOpen,
-    })),
+	setSelectedTaskId: (id) =>
+		set((state) => ({
+			selectedTaskId: id,
+			// Auto-open detail panel when selecting; preserve state when clearing
+			detailPanelOpen: id !== null ? true : state.detailPanelOpen,
+		})),
 
-  setFocusedTaskId: (id) => set({ focusedTaskId: id }),
+	setFocusedTaskId: (id) => set({ focusedTaskId: id }),
 
-  toggleDetailPanel: () =>
-    set((state) => ({ detailPanelOpen: !state.detailPanelOpen })),
+	toggleDetailPanel: () => set((state) => ({ detailPanelOpen: !state.detailPanelOpen })),
 
-  setDetailPanelOpen: (open) => set({ detailPanelOpen: open }),
+	setDetailPanelOpen: (open) => set({ detailPanelOpen: open }),
 
-  setPanelHeight: (height) => {
-    const clamped = clampPanelHeight(height);
-    savePanelHeight(clamped);
-    set({ panelHeight: clamped });
-  },
+	setPanelHeight: (height) => {
+		const clamped = clampPanelHeight(height);
+		savePanelHeight(clamped);
+		set({ panelHeight: clamped });
+	},
 
-  clearIfMissing: (existingIds) =>
-    set((state) => ({
-      selectedTaskId:
-        state.selectedTaskId && existingIds.has(state.selectedTaskId)
-          ? state.selectedTaskId
-          : null,
-      focusedTaskId:
-        state.focusedTaskId && existingIds.has(state.focusedTaskId)
-          ? state.focusedTaskId
-          : null,
-    })),
+	clearIfMissing: (existingIds) =>
+		set((state) => ({
+			selectedTaskId: state.selectedTaskId && existingIds.has(state.selectedTaskId)
+				? state.selectedTaskId
+				: null,
+			focusedTaskId: state.focusedTaskId && existingIds.has(state.focusedTaskId)
+				? state.focusedTaskId
+				: null,
+		})),
 }));
 
 /**

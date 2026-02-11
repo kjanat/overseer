@@ -22,7 +22,7 @@ serde_json    = "1.0"                                              # Serializati
 thiserror     = "2.0"                                              # Utilities
 ulid          = "1.2"                                              # Utilities
 
-[dependencies.gix]  # Git backend (gix) [FALLBACK] - pure Rust git implementation
+[dependencies.gix]  # Git backend (gix) [FALLBACK, but working I hope] - pure Rust git implementation
 version          = "0.77"
 default-features = false
 features         = ["dirwalk", "index", "revision", "status", "worktree-mutation"]

@@ -128,12 +128,12 @@ The `result` becomes part of the task's permanent record.
 
 VCS operations are **automatically handled** by the tasks API:
 
-| Task Operation                | jj (full VCS management)                                                   | git (passive observer)                    |
-| ----------------------------- | -------------------------------------------------------------------------- | ----------------------------------------- |
-| `tasks.start(id)`             | Creates bookmark `task/<id>`, checks out, records start commit             | Records current commit + branch name only |
-| `tasks.complete(id)`          | Commits changes, deletes bookmark (best-effort), clears DB bookmark        | Records commit SHA only                   |
-| `tasks.complete(milestoneId)` | Same + deletes ALL descendant bookmarks recursively (depth-1 and depth-2)  | Records commit SHA only                   |
-| `tasks.delete(id)`            | Best-effort bookmark cleanup (logs warning on failure)                     | No VCS cleanup needed                     |
+| Task Operation                | jj (full VCS management)                                                  | git (passive observer)                    |
+| ----------------------------- | ------------------------------------------------------------------------- | ----------------------------------------- |
+| `tasks.start(id)`             | Creates bookmark `task/<id>`, checks out, records start commit            | Records current commit + branch name only |
+| `tasks.complete(id)`          | Commits changes, deletes bookmark (best-effort), clears DB bookmark       | Records commit SHA only                   |
+| `tasks.complete(milestoneId)` | Same + deletes ALL descendant bookmarks recursively (depth-1 and depth-2) | Records commit SHA only                   |
+| `tasks.delete(id)`            | Best-effort bookmark cleanup (logs warning on failure)                    | No VCS cleanup needed                     |
 
 **Note:** VCS (jj or git) is required for start/complete. CRUD operations work
 without VCS. Git acts as a passive observer — no branch creation, commits, or

@@ -119,24 +119,24 @@ declare const tasks: {
 };
 ```
 
-| Method      | Returns                   | Description                                                      |
-| ----------- | ------------------------- | ---------------------------------------------------------------- |
-| `list`      | `Task[]`                  | Filter by `parentId`, `ready`, `completed`, `depth`, `type`      |
-| `get`       | `TaskWithContext`         | Get task with full context chain + inherited learnings           |
-| `create`    | `Task`                    | Create task (priority must be 0-2)                               |
-| `update`    | `Task`                    | Update description, context, priority, parentId                  |
+| Method      | Returns                   | Description                                                                 |
+| ----------- | ------------------------- | --------------------------------------------------------------------------- |
+| `list`      | `Task[]`                  | Filter by `parentId`, `ready`, `completed`, `depth`, `type`                 |
+| `get`       | `TaskWithContext`         | Get task with full context chain + inherited learnings                      |
+| `create`    | `Task`                    | Create task (priority must be 0-2)                                          |
+| `update`    | `Task`                    | Update description, context, priority, parentId                             |
 | `start`     | `Task`                    | **VCS required** - jj: creates bookmark + checkout; git: records state only |
-| `complete`  | `Task`                    | **VCS required** - jj: commits + deletes bookmark; git: records SHA only   |
-| `reopen`    | `Task`                    | Reopen completed task                                            |
-| `cancel`    | `Task`                    | Cancel task (does NOT satisfy blockers)                          |
-| `archive`   | `Task`                    | Archive completed/cancelled task (hides from list)               |
-| `delete`    | `void`                    | Delete task + best-effort VCS bookmark cleanup                   |
-| `block`     | `void`                    | Add blocker (cannot be self, ancestor, or descendant)            |
-| `unblock`   | `void`                    | Remove blocker relationship                                      |
-| `nextReady` | `TaskWithContext \| null` | Get deepest ready leaf with full context                         |
-| `tree`      | `TaskTree \| TaskTree[]`  | Get task tree (all milestones if no ID)                          |
-| `search`    | `Task[]`                  | Search by description/context/result (case-insensitive)          |
-| `progress`  | `TaskProgress`            | Aggregate counts for milestone or all tasks                      |
+| `complete`  | `Task`                    | **VCS required** - jj: commits + deletes bookmark; git: records SHA only    |
+| `reopen`    | `Task`                    | Reopen completed task                                                       |
+| `cancel`    | `Task`                    | Cancel task (does NOT satisfy blockers)                                     |
+| `archive`   | `Task`                    | Archive completed/cancelled task (hides from list)                          |
+| `delete`    | `void`                    | Delete task + best-effort VCS bookmark cleanup                              |
+| `block`     | `void`                    | Add blocker (cannot be self, ancestor, or descendant)                       |
+| `unblock`   | `void`                    | Remove blocker relationship                                                 |
+| `nextReady` | `TaskWithContext \| null` | Get deepest ready leaf with full context                                    |
+| `tree`      | `TaskTree \| TaskTree[]`  | Get task tree (all milestones if no ID)                                     |
+| `search`    | `Task[]`                  | Search by description/context/result (case-insensitive)                     |
+| `progress`  | `TaskProgress`            | Aggregate counts for milestone or all tasks                                 |
 
 ## Learnings API
 
@@ -173,15 +173,15 @@ declare const learnings: {
 
 VCS operations are **automatically handled** by the tasks API:
 
-| Task Operation       | jj (full VCS management)                                           | git (passive observer)                    |
-| -------------------- | ------------------------------------------------------------------ | ----------------------------------------- |
-| `tasks.start(id)`    | Creates bookmark `task/<id>`, checks out, records start commit     | Records current commit + branch name only |
-| `tasks.complete(id)` | Commits changes, deletes bookmark (NothingToCommit = success)      | Records commit SHA only                   |
-| `tasks.delete(id)`   | Best-effort bookmark cleanup (logs warning on failure)             | No VCS cleanup needed                     |
+| Task Operation       | jj (full VCS management)                                       | git (passive observer)                    |
+| -------------------- | -------------------------------------------------------------- | ----------------------------------------- |
+| `tasks.start(id)`    | Creates bookmark `task/<id>`, checks out, records start commit | Records current commit + branch name only |
+| `tasks.complete(id)` | Commits changes, deletes bookmark (NothingToCommit = success)  | Records commit SHA only                   |
+| `tasks.delete(id)`   | Best-effort bookmark cleanup (logs warning on failure)         | No VCS cleanup needed                     |
 
 **VCS (jj or git) is required** for start/complete. Fails with `NotARepository`
-if none found. CRUD operations work without VCS. Git acts as a passive
-observer — no branch creation, commits, or working tree mutations.
+if none found. CRUD operations work without VCS. Git acts as a passive observer
+— no branch creation, commits, or working tree mutations.
 
 ## Quick Examples
 

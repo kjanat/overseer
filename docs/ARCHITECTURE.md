@@ -229,11 +229,11 @@ Walk up from cwd:
 
 ### Workflow VCS Operations
 
-| Operation | jj (full VCS management)                           | git (passive observer)                 |
-| --------- | -------------------------------------------------- | -------------------------------------- |
-| start     | `create_bookmark`, `checkout`, `current_commit_id` | `current_commit_id`, `current_branch`  |
-| complete  | `commit`, `delete_bookmark` (best-effort)          | `current_commit_id` only               |
-| delete    | `delete_bookmark` (best-effort)                    | No VCS cleanup needed                  |
+| Operation | jj (full VCS management)                           | git (passive observer)                |
+| --------- | -------------------------------------------------- | ------------------------------------- |
+| start     | `create_bookmark`, `checkout`, `current_commit_id` | `current_commit_id`, `current_branch` |
+| complete  | `commit`, `delete_bookmark` (best-effort)          | `current_commit_id` only              |
+| delete    | `delete_bookmark` (best-effort)                    | No VCS cleanup needed                 |
 
 ## Public Surfaces
 

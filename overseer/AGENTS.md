@@ -5,7 +5,7 @@ parses JSON.
 
 ## STRUCTURE
 
-```
+```tree
 src/
 ├── main.rs           # Entry, clap CLI, JSON/human output (484 lines)
 ├── commands/         # Subcommand handlers (task, learning, vcs, data)
@@ -30,16 +30,16 @@ src/
 
 ## WHERE TO LOOK
 
-| Task               | File                       | Notes                                 |
-| ------------------ | -------------------------- | ------------------------------------- |
-| Add CLI subcommand | `commands/{name}.rs`       | Wire in `commands/mod.rs` + `main.rs` |
-| Task validation    | `core/task_service.rs`     | Depth, cycles, blockers               |
-| Task lifecycle     | `core/workflow_service.rs` | Start/complete with VCS               |
-| SQL queries        | `db/task_repo.rs`          | All raw SQL here                      |
-| Schema changes     | `db/schema.rs`             | Bump `SCHEMA_VERSION`                 |
-| VCS detection      | `vcs/detection.rs`         | Returns (VcsType, Option<PathBuf>)    |
-| Error variants     | `error.rs`                 | Add to `OsError` enum                 |
-| New ID type        | `id.rs`                    | Follow TaskId pattern                 |
+| Task               | File                       | Notes                                  |
+| ------------------ | -------------------------- | -------------------------------------- |
+| Add CLI subcommand | `commands/{name}.rs`       | Wire in `commands/mod.rs` + `main.rs`  |
+| Task validation    | `core/task_service.rs`     | Depth, cycles, blockers                |
+| Task lifecycle     | `core/workflow_service.rs` | Start/complete with VCS                |
+| SQL queries        | `db/task_repo.rs`          | All raw SQL here                       |
+| Schema changes     | `db/schema.rs`             | Bump `SCHEMA_VERSION`                  |
+| VCS detection      | `vcs/detection.rs`         | Returns (`VcsType`, `Option<PathBuf>`) |
+| Error variants     | `error.rs`                 | Add to `OsError` enum                  |
+| New ID type        | `id.rs`                    | Follow TaskId pattern                  |
 
 ## CONVENTIONS
 

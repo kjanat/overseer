@@ -46,7 +46,7 @@ Workflow ops are VCS-type-aware via `manages_branches()` on VcsBackend trait.
 
 ### git (`manages_branches() = false`)
 
-- **start**: Record current_commit_id + current_branch_name (informational).
+- **start**: Record current_commit_id + current_branch_name (informational).\
   Do NOT create branches or switch HEAD.
 - **complete**: Update DB only. Do NOT commit, checkout, or delete branches.
 - Overseer is a **pure task tracker** in git repos — observes state, never

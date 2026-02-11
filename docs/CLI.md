@@ -164,8 +164,10 @@ os task start TASK_ID
 - **VCS required** - fails with `NotARepository` if no jj/git
 - Follows blockers to find startable work
 - Cascades down to deepest incomplete leaf
-- Creates VCS bookmark for started task
 - Records start commit (`startCommit` field)
+- **jj:** Creates VCS bookmark `task/<id>` and checks it out
+- **git:** Records current commit + branch name (no branches created, no
+  checkout)
 - Returns the task that was actually started
 
 **Algorithm:**
@@ -204,7 +206,9 @@ os task complete TASK_ID [--result "Completion notes"] [--learning "..."]...
 
 - **VCS required** - fails with `NotARepository` if no jj/git
 - Sets `status = completed`, `completed_at = now()`
-- Commits changes (NothingToCommit treated as success)
+- **jj:** Commits changes (NothingToCommit = success), deletes bookmark
+  (best-effort)
+- **git:** Records current commit SHA only (no commits, no branch operations)
 - Fails if task has pending children
 - Optional `--result` stores completion notes
 - **Bubble-up:** Auto-completes parent if all siblings done and parent unblocked

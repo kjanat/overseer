@@ -261,18 +261,24 @@ console.log('Parent learnings:', subtask.learnings.parent);
 ### VCS Integration (Required for Workflow)
 
 VCS operations are integrated into task lifecycle - no manual VCS API calls
-needed:
+needed. Behavior differs by VCS type:
+
+- **jj (full management):** Creates bookmarks on start, commits changes and
+  deletes bookmarks on complete
+- **git (passive observer):** Records current commit/branch on start, records
+  commit SHA on complete — never creates branches, commits, or modifies working
+  tree
 
 ```javascript
-// Complete task - VCS required, commits changes
+// Complete task - VCS required
 await tasks.complete(task.id, { result: 'Login endpoint complete' });
-// -> Commits changes (NothingToCommit treated as success)
-// -> Stores commit SHA on task
+// jj: commits changes (NothingToCommit = success), stores commit SHA
+// git: records current commit SHA only
 ```
 
 **VCS is required** for `start` and `complete`. Fails with `NotARepository` if
-no jj/git found, `DirtyWorkingCopy` if uncommitted changes. CRUD operations
-(create, list, get, etc.) work without VCS.
+no jj/git found, `DirtyWorkingCopy` if uncommitted changes (jj only). CRUD
+operations (create, list, get, etc.) work without VCS.
 
 ### Error Handling
 
@@ -438,7 +444,7 @@ console.log('Task:', task.context.own);
 // Check inherited learnings
 console.log('Learnings:', task.learnings.parent);
 
-// Start work (creates bookmark, records start commit)
+// Start work (jj: creates bookmark + checkout; git: records state only)
 await tasks.start(task.id);
 return task;
 ```
@@ -446,7 +452,7 @@ return task;
 ### Complete Task (VCS Auto-Handled)
 
 ```javascript
-// Complete task - VCS required, commits changes
+// Complete task - VCS required (jj: commits + deletes bookmark; git: records SHA only)
 const completed = await tasks.complete(taskId, {
 	result: 'Feature X implemented and tested',
 	learnings: ['Key discovery during implementation'],

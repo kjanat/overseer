@@ -139,26 +139,31 @@ on uncommitted changes.
 `start(id)` performs:
 
 1. **Validate** task is startable (not blocked, is next-ready target)
-2. **Create bookmark** (idempotent - tolerates "already exists")
-3. **Checkout** bookmark
-4. **Record** `start_commit` SHA
-5. **Persist** bookmark name + timestamps in DB
-6. **Bubble `started_at`** to ancestors (timestamps only, no bookmarks)
+2. **Record** `start_commit` SHA + current branch name
+3. **jj only:** Create bookmark (idempotent), checkout bookmark
+4. **Persist** bookmark name + timestamps in DB
+5. **Bubble `started_at`** to ancestors (timestamps only, no bookmarks)
 
-**Idempotency:** If `started_at` + `bookmark` already set, just checkout.
+**jj vs git:** jj creates and checks out a `task/<id>` bookmark. Git records
+current commit + branch name but never creates branches or changes checkout.
+
+**Idempotency:** If `started_at` + `bookmark` already set, jj just checks out.
 
 ### Complete Semantics
 
 `complete(id, { result?, learnings? })` performs in order:
 
-1. **VCS commit** (NothingToCommit = success)
+1. **jj only:** VCS commit (NothingToCommit = success)
 2. **Mark complete** in DB + attach learnings
 3. **Bubble learnings** to immediate parent
-4. **Delete bookmark** (best-effort; clear DB field only on success)
+4. **jj only:** Delete bookmark (best-effort; clear DB field only on success)
 5. **Auto-complete ancestors** if all children done and unblocked
 
+**jj vs git:** jj commits changes and cleans up bookmarks. Git records the
+current commit SHA but never commits or modifies branches.
+
 **Important:** Auto-completing parents is DB-only (no extra commit). Milestone
-completion does run commit logic.
+completion does run commit logic (jj only).
 
 ### Milestone Completion
 
@@ -224,11 +229,11 @@ Walk up from cwd:
 
 ### Workflow VCS Operations
 
-| Operation | VCS Action                                         |
-| --------- | -------------------------------------------------- |
-| start     | `create_bookmark`, `checkout`, `current_commit_id` |
-| complete  | `commit`, `delete_bookmark` (best-effort)          |
-| delete    | `delete_bookmark` (best-effort)                    |
+| Operation | jj (full VCS management)                           | git (passive observer)                 |
+| --------- | -------------------------------------------------- | -------------------------------------- |
+| start     | `create_bookmark`, `checkout`, `current_commit_id` | `current_commit_id`, `current_branch`  |
+| complete  | `commit`, `delete_bookmark` (best-effort)          | `current_commit_id` only               |
+| delete    | `delete_bookmark` (best-effort)                    | No VCS cleanup needed                  |
 
 ## Public Surfaces
 
@@ -318,8 +323,9 @@ Rust JSON output is source of truth. TypeScript mirrors it.
 **Invariants (always true):**
 
 - VCS operations run before DB updates in workflow
-- Bookmark created on start, deleted on complete (best-effort)
-- Milestone completion cleans ALL descendant bookmarks
+- jj: Bookmark created on start, deleted on complete (best-effort)
+- jj: Milestone completion cleans ALL descendant bookmarks
+- git: Passive observer — records state only, never mutates VCS
 - Learnings bubble to immediate parent only (preserves source_task_id)
 
 ## References

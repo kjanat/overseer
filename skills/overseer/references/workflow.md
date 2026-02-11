@@ -65,8 +65,12 @@ console.log('Task learnings:', task.learnings.own);
 await tasks.start(taskId);
 ```
 
-**VCS Required:** Creates bookmark `task/<id>`, records start commit. Fails with
-`NotARepository` if no jj/git found.
+**VCS Required:** Records start commit. Fails with `NotARepository` if no jj/git
+found.
+
+- **jj:** Creates bookmark `task/<id>`, checks it out
+- **git:** Records current commit + branch name (no branches created, no
+  checkout)
 
 After starting, the task status changes to `in_progress`.
 
@@ -108,9 +112,11 @@ Verification:
 });
 ```
 
-**VCS Required:** Commits changes (NothingToCommit treated as success), then
-deletes the task's bookmark (best-effort) and clears the DB bookmark field on
-success. Fails with `NotARepository` if no jj/git found.
+**VCS Required:** Fails with `NotARepository` if no jj/git found.
+
+- **jj:** Commits changes (NothingToCommit = success), deletes bookmark
+  (best-effort), clears DB bookmark field on success
+- **git:** Records commit SHA only (no commits, no branch operations)
 
 **Learnings Effect:** Learnings bubble to immediate parent only. `sourceTaskId`
 is preserved through bubbling, so if this task's learnings later bubble further,
@@ -122,15 +128,16 @@ The `result` becomes part of the task's permanent record.
 
 VCS operations are **automatically handled** by the tasks API:
 
-| Task Operation                | VCS Effect                                                                                        |
-| ----------------------------- | ------------------------------------------------------------------------------------------------- |
-| `tasks.start(id)`             | **VCS required** - creates bookmark `task/<id>`, records start commit                             |
-| `tasks.complete(id)`          | **VCS required** - commits changes, deletes bookmark (best-effort), clears DB bookmark on success |
-| `tasks.complete(milestoneId)` | Same + deletes ALL descendant bookmarks recursively (depth-1 and depth-2)                         |
-| `tasks.delete(id)`            | Best-effort bookmark cleanup (logs warning on failure)                                            |
+| Task Operation                | jj (full VCS management)                                                   | git (passive observer)                    |
+| ----------------------------- | -------------------------------------------------------------------------- | ----------------------------------------- |
+| `tasks.start(id)`             | Creates bookmark `task/<id>`, checks out, records start commit             | Records current commit + branch name only |
+| `tasks.complete(id)`          | Commits changes, deletes bookmark (best-effort), clears DB bookmark        | Records commit SHA only                   |
+| `tasks.complete(milestoneId)` | Same + deletes ALL descendant bookmarks recursively (depth-1 and depth-2)  | Records commit SHA only                   |
+| `tasks.delete(id)`            | Best-effort bookmark cleanup (logs warning on failure)                     | No VCS cleanup needed                     |
 
 **Note:** VCS (jj or git) is required for start/complete. CRUD operations work
-without VCS.
+without VCS. Git acts as a passive observer — no branch creation, commits, or
+working tree mutations.
 
 ## Error Handling
 

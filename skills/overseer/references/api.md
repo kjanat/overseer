@@ -125,8 +125,8 @@ declare const tasks: {
 | `get`       | `TaskWithContext`         | Get task with full context chain + inherited learnings           |
 | `create`    | `Task`                    | Create task (priority must be 0-2)                               |
 | `update`    | `Task`                    | Update description, context, priority, parentId                  |
-| `start`     | `Task`                    | **VCS required** - creates bookmark, records start commit        |
-| `complete`  | `Task`                    | **VCS required** - commits changes + bubbles learnings to parent |
+| `start`     | `Task`                    | **VCS required** - jj: creates bookmark + checkout; git: records state only |
+| `complete`  | `Task`                    | **VCS required** - jj: commits + deletes bookmark; git: records SHA only   |
 | `reopen`    | `Task`                    | Reopen completed task                                            |
 | `cancel`    | `Task`                    | Cancel task (does NOT satisfy blockers)                          |
 | `archive`   | `Task`                    | Archive completed/cancelled task (hides from list)               |
@@ -173,14 +173,15 @@ declare const learnings: {
 
 VCS operations are **automatically handled** by the tasks API:
 
-| Task Operation       | VCS Effect                                                            |
-| -------------------- | --------------------------------------------------------------------- |
-| `tasks.start(id)`    | **VCS required** - creates bookmark `task/<id>`, records start commit |
-| `tasks.complete(id)` | **VCS required** - commits changes (NothingToCommit = success)        |
-| `tasks.delete(id)`   | Best-effort bookmark cleanup (logs warning on failure)                |
+| Task Operation       | jj (full VCS management)                                           | git (passive observer)                    |
+| -------------------- | ------------------------------------------------------------------ | ----------------------------------------- |
+| `tasks.start(id)`    | Creates bookmark `task/<id>`, checks out, records start commit     | Records current commit + branch name only |
+| `tasks.complete(id)` | Commits changes, deletes bookmark (NothingToCommit = success)      | Records commit SHA only                   |
+| `tasks.delete(id)`   | Best-effort bookmark cleanup (logs warning on failure)             | No VCS cleanup needed                     |
 
 **VCS (jj or git) is required** for start/complete. Fails with `NotARepository`
-if none found. CRUD operations work without VCS.
+if none found. CRUD operations work without VCS. Git acts as a passive
+observer — no branch creation, commits, or working tree mutations.
 
 ## Quick Examples
 
@@ -198,12 +199,12 @@ const subtask = await tasks.create({
 	context: 'Handle 7-day expiry',
 });
 
-// Start work (auto-creates VCS bookmark)
+// Start work (jj: creates bookmark + checkout; git: records state only)
 await tasks.start(subtask.id);
 
 // ... do implementation work ...
 
-// Complete task with learnings (VCS required - commits changes, bubbles learnings to parent)
+// Complete task with learnings (jj: commits + deletes bookmark; git: records SHA only)
 await tasks.complete(subtask.id, {
 	result: 'Implemented using jose library',
 	learnings: ['Use jose instead of jsonwebtoken'],

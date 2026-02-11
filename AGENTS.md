@@ -146,15 +146,16 @@ runtime type used for `TaskWithContext` is in `context.rs` and includes `own`.
 4. Timestamps: ISO 8601 / RFC 3339 (chrono)
 5. "Milestone" = depth-0 task (no parent)
 6. Learnings bubble to immediate parent on completion (preserves source_task_id)
-7. VCS required for workflow ops (start/complete) - fails with NotARepository or
-   DirtyWorkingCopy
+7. VCS required for workflow ops (start/complete) - fails with NotARepository
 8. VCS cleanup on delete is best-effort (logs warning, doesn't fail)
-9. VCS bookmark/branch lifecycle (unified stacking semantics):
-   - `start`: Create bookmark/branch at HEAD, checkout
-   - `complete`: Commit changes → checkout start_commit → delete bookmark/branch
-   - Both jj and git get identical behavior
-10. Milestone completion cleans ALL descendant bookmarks/branches (depth-1 and
-    depth-2) PLUS milestone's own bookmark
+9. VCS behavior is type-aware (jj vs git):
+   - **jj (full management):** Creates bookmark on start, commits + deletes
+     bookmark on complete, checks out start_commit
+   - **git (passive observer):** Records current commit + branch name on start,
+     records commit SHA on complete — never creates branches, commits, or
+     modifies working tree
+10. jj milestone completion cleans ALL descendant bookmarks (depth-1 and
+    depth-2) PLUS milestone's own bookmark (git: no cleanup needed)
 11. Blocker edges preserved on completion (not removed) - readiness computed
     from blocker's completed state
 

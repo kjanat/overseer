@@ -1412,10 +1412,6 @@ mod tests {
                 branch_name: Some(name.to_string()),
             }
         }
-
-        fn take_calls(&self) -> Vec<String> {
-            std::mem::take(&mut *self.calls.lock().unwrap())
-        }
     }
 
     impl VcsBackend for TrackingGitBackend {
